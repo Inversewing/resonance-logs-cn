@@ -13,7 +13,6 @@
     initOverlay,
     isEditing,
     overlayVisibility,
-    syncMonitoredBuffNames,
   } from "./overlay-state.svelte.js";
 
   const editing = $derived(isEditing());
@@ -21,10 +20,6 @@
   const displayMode = $derived(buffDisplayMode());
 
   onMount(initOverlay);
-
-  $effect(() => {
-    syncMonitoredBuffNames();
-  });
 </script>
 
 <div class="overlay-root" class:editing={editing}>

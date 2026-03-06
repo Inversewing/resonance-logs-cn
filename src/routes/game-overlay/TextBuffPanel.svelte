@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TextBuffRow from "./TextBuffRow.svelte";
   import {
     getGroupPosition,
     getGroupScale,
@@ -6,15 +7,17 @@
     limitedTextBuffs,
     startDrag,
     startResize,
+    textBuffPanelStyle,
   } from "./overlay-state.svelte.js";
 
   const editing = $derived(isEditing());
   const buffs = $derived(limitedTextBuffs());
+  const styleConfig = $derived(textBuffPanelStyle());
   const groupPos = $derived(getGroupPosition("textBuffPanel"));
   const groupScale = $derived(getGroupScale("textBuffPanelScale"));
 </script>
 
-{#if buffs.length > 0}
+{#if buffs.length > 0 || editing}
   <div
     class="overlay-group text-buff-panel"
     class:editable={editing}
@@ -28,17 +31,20 @@
       <div class="group-tag">无图标Buff区</div>
     {/if}
 
-    {#each buffs as buff (buff.baseId)}
-      <div class="text-buff-row" class:placeholder={buff.isPlaceholder}>
-        <div class="text-buff-name">{buff.name}</div>
-        <div class="text-buff-time">{buff.text}</div>
-        <div class="text-buff-decay">
-          <div class="text-buff-decay-fill" style:width={`${buff.remainPercent}%`}></div>
-        </div>
-        {#if buff.layer > 1}
-          <div class="text-buff-layer">x{buff.layer}</div>
-        {/if}
-      </div>
+    {#each buffs as buff (buff.key)}
+      <TextBuffRow
+        label={buff.label}
+        valueText={buff.valueText}
+        metaText={buff.metaText}
+        progressPercent={buff.progressPercent}
+        showProgress={buff.showProgress}
+        nameColor={styleConfig.nameColor}
+        valueColor={styleConfig.valueColor}
+        progressColor={styleConfig.progressColor}
+        fontSize={12}
+        columnGap={8}
+        placeholder={buff.isPlaceholder}
+      />
     {/each}
 
     {#if editing}
@@ -74,49 +80,5 @@
     background: rgba(20, 36, 56, 0.45);
     box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.35);
     padding: 8px;
-  }
-
-  .text-buff-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 4px 8px;
-  }
-
-  .text-buff-row.placeholder {
-    opacity: 0.6;
-  }
-
-  .text-buff-name {
-    font-size: 12px;
-    color: #ffffff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .text-buff-time {
-    font-size: 12px;
-    color: #ffffff;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .text-buff-decay {
-    grid-column: 1 / -1;
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.2);
-    overflow: hidden;
-  }
-
-  .text-buff-decay-fill {
-    height: 100%;
-    background: #ffffff;
-    transition: width 100ms linear;
-  }
-
-  .text-buff-layer {
-    grid-column: 1 / -1;
-    font-size: 10px;
-    color: rgba(255, 255, 255, 0.85);
   }
 </style>

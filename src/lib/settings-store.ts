@@ -148,7 +148,15 @@ export type CustomPanelStyle = {
   progressColor: string;
 };
 
+export type TextBuffPanelStyle = {
+  nameColor: string;
+  valueColor: string;
+  progressColor: string;
+};
+
 export type BuffDisplayMode = "individual" | "grouped";
+
+export type BuffAliasMap = Record<string, string>;
 
 export type InlineBuffFormat = "active" | "stacks_timer" | "timer";
 
@@ -158,7 +166,6 @@ export type InlineBuffEntry = {
   sourceId: number;
   label: string;
   format: InlineBuffFormat;
-  color: string;
 };
 
 export type PanelAreaRowRef = { type: "attr"; attrId: number };
@@ -192,11 +199,24 @@ export type SkillMonitorProfile = {
   inlineBuffEntries?: InlineBuffEntry[];
   panelAreaRowOrder?: PanelAreaRowRef[];
   customPanelStyle?: CustomPanelStyle;
+  textBuffPanelStyle?: TextBuffPanelStyle;
   textBuffMaxVisible: number;
   overlayPositions: OverlayPositions;
   overlaySizes: OverlaySizes;
   overlayVisibility: OverlayVisibility;
 };
+
+export function ensureBuffAliases(
+  buffAliases: BuffAliasMap | null | undefined,
+): BuffAliasMap {
+  const next: BuffAliasMap = {};
+  for (const [baseId, alias] of Object.entries(buffAliases ?? {})) {
+    const trimmed = alias.trim();
+    if (!trimmed) continue;
+    next[baseId] = trimmed;
+  }
+  return next;
+}
 
 function createDefaultOverlayPositions(): OverlayPositions {
   return {
@@ -244,6 +264,14 @@ function createDefaultCustomPanelStyle(): CustomPanelStyle {
   };
 }
 
+function createDefaultTextBuffPanelStyle(): TextBuffPanelStyle {
+  return {
+    nameColor: "#ffffff",
+    valueColor: "#ffffff",
+    progressColor: "#ffffff",
+  };
+}
+
 export function createDefaultBuffGroup(
   name = "新分组",
   index = 1,
@@ -282,6 +310,7 @@ export function createDefaultSkillMonitorProfile(
     inlineBuffEntries: [],
     panelAreaRowOrder: [],
     customPanelStyle: createDefaultCustomPanelStyle(),
+    textBuffPanelStyle: createDefaultTextBuffPanelStyle(),
     textBuffMaxVisible: 10,
     overlayPositions: createDefaultOverlayPositions(),
     overlaySizes: createDefaultOverlaySizes(),
@@ -537,6 +566,7 @@ const DEFAULT_SETTINGS = {
   skillMonitor: {
     enabled: false,
     activeProfileIndex: 0,
+    buffAliases: {} as BuffAliasMap,
     profiles: [createDefaultSkillMonitorProfile()] as SkillMonitorProfile[],
   },
   live: {

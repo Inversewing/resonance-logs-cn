@@ -116,39 +116,6 @@ async setMonitoredPanelAttrs(attrIds: number[]) : Promise<Result<null, string>> 
     else return { status: "error", error: e  as any };
 }
 },
-/**
- * Returns all buffs that have a sprite image available.
- */
-async getAvailableBuffs() : Promise<Result<BuffDefinition[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_available_buffs") };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Returns display names for requested buff ids, including buffs without sprite images.
- */
-async getBuffNames(baseIds: number[]) : Promise<Result<BuffNameInfo[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("get_buff_names", { baseIds }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
-/**
- * Searches buffs by name and returns matching entries, including no-icon buffs.
- */
-async searchBuffsByName(keyword: string, limit: number | null) : Promise<Result<BuffNameInfo[], string>> {
-    try {
-    return { status: "ok", data: await TAURI_INVOKE("search_buffs_by_name", { keyword, limit }) };
-} catch (e) {
-    if(e instanceof Error) throw e;
-    else return { status: "error", error: e  as any };
-}
-},
 async setMonitorAllBuff(monitorAllBuff: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("set_monitor_all_buff", { monitorAllBuff }) };
@@ -495,8 +462,6 @@ maxHp: number | null;
  * Whether the boss was defeated.
  */
 isDefeated: boolean }
-export type BuffDefinition = { baseId: number; name: string; spriteFile: string; searchKeywords: string[] }
-export type BuffNameInfo = { baseId: number; name: string; hasSpriteFile: boolean }
 export type CounterAction = "reset" | "freeze" | "resetAndFreeze" | "startCount" | "noOp"
 export type CounterRule = { ruleId: number; trigger: CounterTrigger; linkedBuffId: number; threshold: number | null; onBuffAdd: CounterAction; onBuffRemove: CounterAction }
 export type CounterTrigger = { damageBySkillKey: number[] } | { damageBySkillKeySelfTarget: number[] } | "anyDamage"

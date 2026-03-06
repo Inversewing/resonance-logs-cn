@@ -1,14 +1,17 @@
 import {
   AVAILABLE_PANEL_ATTRS,
   SETTINGS,
+  ensureBuffAliases,
   type CustomPanelStyle,
   type InlineBuffEntry,
   type PanelAttrConfig,
+  type TextBuffPanelStyle,
 } from "$lib/settings-store";
 import { DEFAULT_OVERLAY_VISIBILITY } from "./overlay-constants";
 import {
   ensureCustomPanelStyle,
   ensureInlineBuffEntries,
+  ensureTextBuffPanelStyle,
 } from "./overlay-utils";
 
 const _activeProfileIndex = $derived.by(() => {
@@ -28,6 +31,9 @@ const _activeProfile = $derived.by(() => {
 const _selectedClassKey = $derived.by(
   () => _activeProfile?.selectedClass ?? "wind_knight",
 );
+const _buffAliases = $derived.by(() =>
+  ensureBuffAliases(SETTINGS.skillMonitor.state.buffAliases),
+);
 const _monitoredSkillIds = $derived.by(
   () => _activeProfile?.monitoredSkillIds ?? [],
 );
@@ -45,6 +51,9 @@ const _overlayVisibility = $derived.by(
 );
 const _customPanelStyle = $derived.by<CustomPanelStyle>(() =>
   ensureCustomPanelStyle(_activeProfile),
+);
+const _textBuffPanelStyle = $derived.by<TextBuffPanelStyle>(() =>
+  ensureTextBuffPanelStyle(_activeProfile),
 );
 const _monitoredPanelAttrs = $derived.by(() => {
   const current = _activeProfile?.monitoredPanelAttrs ?? [];
@@ -88,6 +97,10 @@ export function selectedClassKey() {
   return _selectedClassKey;
 }
 
+export function buffAliases() {
+  return _buffAliases;
+}
+
 export function monitoredSkillIds() {
   return _monitoredSkillIds;
 }
@@ -110,6 +123,10 @@ export function overlayVisibility() {
 
 export function customPanelStyle() {
   return _customPanelStyle;
+}
+
+export function textBuffPanelStyle() {
+  return _textBuffPanelStyle;
 }
 
 export function monitoredPanelAttrs() {

@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import { commands, type BuffDefinition, type BuffNameInfo } from "$lib/bindings";
   import SettingsSwitch from "../dps/settings/settings-switch.svelte";
   import TabSkillCd from "./tab-skill-cd.svelte";
   import TabBuffMonitor from "./tab-buff-monitor.svelte";
@@ -8,9 +6,18 @@
   import TabCustomPanel from "./tab-custom-panel.svelte";
   import TabOverlay from "./tab-overlay.svelte";
   import {
+    getAvailableBuffDefinitions,
+    lookupDefaultBuffName,
+    resolveBuffDisplayName,
+    searchBuffsByName,
+    type BuffDefinition,
+    type BuffNameInfo,
+  } from "$lib/config/buff-name-table";
+  import {
     AVAILABLE_PANEL_ATTRS,
     createDefaultBuffGroup,
     createDefaultSkillMonitorProfile,
+    ensureBuffAliases,
     SETTINGS,
     type BuffDisplayMode,
     type BuffGroup,
@@ -19,6 +26,7 @@
     type PanelAttrConfig,
     type PanelAreaRowRef,
     type SkillMonitorProfile,
+    type TextBuffPanelStyle,
   } from "$lib/settings-store";
   import {
     findResonanceSkill,
@@ -28,8 +36,7 @@
     searchResonanceSkills,
   } from "$lib/skill-mappings";
 
-  let availableBuffs = $state<BuffDefinition[]>([]);
-  let buffNames = $state(new Map<number, BuffNameInfo>());
+  const availableBuffs = getAvailableBuffDefinitions();
   let buffSearch = $state("");
   let buffSearchResults = $state<BuffNameInfo[]>([]);
   let globalPrioritySearch = $state("");
@@ -43,17 +50,16 @@
   let inlineBuffSearchResults = $state<BuffNameInfo[]>([]);
   let activeTab = $state<"skill-cd" | "buff" | "panel-attr" | "custom-panel" | "overlay">("skill-cd");
   let attrSectionExpanded = $state(false);
-  onMount(() => {
-    void (async () => {
-      const res = await commands.getAvailableBuffs();
-      if (res.status === "ok") {
-        availableBuffs = res.data;
-      }
-    })();
-  });
+  let buffAliasSectionExpanded = $state(false);
+  let buffAliasSearch = $state("");
+  let buffAliasSearchResults = $state<BuffNameInfo[]>([]);
+  let buffAliasEditingBuffId = $state<number | null>(null);
 
   const classConfigs = $derived(getClassConfigs());
   const counterRules = $derived(getCounterRules());
+  const buffAliases = $derived.by(() =>
+    ensureBuffAliases(SETTINGS.skillMonitor.state.buffAliases),
+  );
   const profiles = $derived(SETTINGS.skillMonitor.state.profiles);
   const activeProfileIndex = $derived(
     Math.min(
@@ -97,11 +103,18 @@
     activeProfile.overlayVisibility?.showCustomPanelGroup ?? true,
   );
   const customPanelStyle = $derived.by(() => ensureCustomPanelStyle(activeProfile));
+  const textBuffPanelStyle = $derived.by(() => ensureTextBuffPanelStyle(activeProfile));
   const buffDisplayMode = $derived(
     activeProfile.buffDisplayMode ?? "individual",
   );
   const buffGroups = $derived.by(() => ensureBuffGroups(activeProfile));
   const individualMonitorAllGroup = $derived.by(() => ensureIndividualMonitorAllGroup(activeProfile));
+  const configuredBuffAliasIds = $derived.by(() =>
+    Object.keys(buffAliases)
+      .map((baseId) => Number(baseId))
+      .filter((baseId) => Number.isFinite(baseId))
+      .sort((a, b) => a - b),
+  );
   const buffPriorityIds = $derived.by(() => {
     const selected = new Set(monitoredBuffIds);
     return uniqueIds((activeProfile.buffPriorityIds ?? []).filter((id) => selected.has(id)));
@@ -202,9 +215,10 @@
       id: entry.id ?? `inline_${idx + 1}`,
       sourceType: entry.sourceType ?? "buff",
       sourceId: entry.sourceId,
-      label: entry.label ?? (entry.sourceType === "counter" ? `计数器 ${entry.sourceId}` : `Buff ${entry.sourceId}`),
+      label: entry.sourceType === "counter"
+        ? (entry.label ?? `计数器 ${entry.sourceId}`)
+        : (entry.label ?? ""),
       format: entry.format ?? "timer",
-      color: entry.color ?? "#ffffff",
     }));
   }
 
@@ -260,6 +274,15 @@
       gap: Math.max(0, Math.min(24, Math.round(current?.gap ?? 6))),
       columnGap: Math.max(0, Math.min(240, Math.round(current?.columnGap ?? 12))),
       fontSize: Math.max(10, Math.min(28, Math.round(current?.fontSize ?? 14))),
+      nameColor: current?.nameColor ?? "#ffffff",
+      valueColor: current?.valueColor ?? "#ffffff",
+      progressColor: current?.progressColor ?? "#ffffff",
+    };
+  }
+
+  function ensureTextBuffPanelStyle(profile: SkillMonitorProfile): TextBuffPanelStyle {
+    const current = profile.textBuffPanelStyle;
+    return {
       nameColor: current?.nameColor ?? "#ffffff",
       valueColor: current?.valueColor ?? "#ffffff",
       progressColor: current?.progressColor ?? "#ffffff",
@@ -346,12 +369,49 @@
     buffSearch = value;
   }
 
+  function getBuffDisplayName(buffId: number): string {
+    return resolveBuffDisplayName(buffId, buffAliases);
+  }
+
+  function getBuffDefaultName(buffId: number): string {
+    return lookupDefaultBuffName(buffId) ?? `#${buffId}`;
+  }
+
+  function getBuffAlias(buffId: number): string {
+    return buffAliases[String(buffId)] ?? "";
+  }
+
+  function setBuffAlias(buffId: number, alias: string) {
+    const next = { ...buffAliases };
+    const trimmed = alias.trim();
+    if (trimmed) {
+      next[String(buffId)] = trimmed;
+    } else {
+      delete next[String(buffId)];
+    }
+    SETTINGS.skillMonitor.state.buffAliases = next;
+  }
+
+  function resetBuffAlias(buffId: number) {
+    const next = { ...buffAliases };
+    delete next[String(buffId)];
+    SETTINGS.skillMonitor.state.buffAliases = next;
+  }
+
   function setGlobalPrioritySearch(value: string) {
     globalPrioritySearch = value;
   }
 
   function setAttrSectionExpanded(expanded: boolean) {
     attrSectionExpanded = expanded;
+  }
+
+  function setBuffAliasSectionExpanded(expanded: boolean) {
+    buffAliasSectionExpanded = expanded;
+  }
+
+  function setBuffAliasEditingBuffId(buffId: number | null) {
+    buffAliasEditingBuffId = buffId;
   }
 
   function toggleBuff(buffId: number) {
@@ -406,64 +466,44 @@
   const selectedBuffs = $derived.by(
     () =>
       monitoredBuffIds
-        .map((id) => availableBuffs.find((buff) => buff.baseId === id))
+        .map((id) => availableBuffMap.get(id))
         .filter(Boolean) as BuffDefinition[],
   );
 
   $effect(() => {
-    const ids = monitoredBuffIds;
-    if (ids.length === 0) return;
-    void (async () => {
-      const missing = ids.filter((id) => !buffNames.has(id));
-      if (missing.length === 0) return;
-      const res = await commands.getBuffNames(missing);
-      if (res.status !== "ok") return;
-      const next = new Map(buffNames);
-      for (const item of res.data) {
-        next.set(item.baseId, item);
-      }
-      buffNames = next;
-    })();
+    buffSearchResults = searchBuffsByName(buffSearch, buffAliases, 120);
   });
 
   $effect(() => {
-    const keyword = buffSearch.trim();
-    if (!keyword) {
-      buffSearchResults = [];
-      return;
-    }
-    void (async () => {
-      const res = await commands.searchBuffsByName(keyword, 120);
-      if (res.status !== "ok") return;
-      buffSearchResults = res.data;
-    })();
+    globalPrioritySearchResults = searchBuffsByName(
+      globalPrioritySearch,
+      buffAliases,
+      120,
+    );
   });
 
   $effect(() => {
-    const keyword = globalPrioritySearch.trim();
-    if (!keyword) {
-      globalPrioritySearchResults = [];
-      return;
-    }
-    void (async () => {
-      const res = await commands.searchBuffsByName(keyword, 120);
-      if (res.status !== "ok") return;
-      globalPrioritySearchResults = res.data;
-    })();
+    inlineBuffSearchResults = searchBuffsByName(
+      inlineBuffSearch,
+      buffAliases,
+      120,
+    );
   });
 
   $effect(() => {
-    const keyword = inlineBuffSearch.trim();
-    if (!keyword) {
-      inlineBuffSearchResults = [];
-      return;
-    }
-    void (async () => {
-      const res = await commands.searchBuffsByName(keyword, 120);
-      if (res.status !== "ok") return;
-      inlineBuffSearchResults = res.data;
-    })();
+    buffAliasSearchResults = searchBuffsByName(
+      buffAliasSearch,
+      buffAliases,
+      120,
+    );
   });
+
+  function setBuffAliasSearch(value: string) {
+    buffAliasSearch = value;
+    if (!value.trim()) {
+      buffAliasEditingBuffId = null;
+    }
+  }
 
   function setOverlaySectionVisibility(
     key: "showSkillCdGroup" | "showResourceGroup" | "showPanelAttrGroup" | "showCustomPanelGroup",
@@ -595,6 +635,27 @@
     updateCustomPanelStyle((style) => ({ ...style, progressColor: value }));
   }
 
+  function updateTextBuffPanelStyle(
+    updater: (style: TextBuffPanelStyle) => TextBuffPanelStyle,
+  ) {
+    updateActiveProfile((profile) => ({
+      ...profile,
+      textBuffPanelStyle: updater(ensureTextBuffPanelStyle(profile)),
+    }));
+  }
+
+  function setTextBuffPanelNameColor(value: string) {
+    updateTextBuffPanelStyle((style) => ({ ...style, nameColor: value }));
+  }
+
+  function setTextBuffPanelValueColor(value: string) {
+    updateTextBuffPanelStyle((style) => ({ ...style, valueColor: value }));
+  }
+
+  function setTextBuffPanelProgressColor(value: string) {
+    updateTextBuffPanelStyle((style) => ({ ...style, progressColor: value }));
+  }
+
   function addInlineBuffEntry(sourceType: "buff" | "counter", sourceId: number) {
     updateActiveProfile((profile) => {
       const entries = ensureInlineBuffEntries(profile);
@@ -603,14 +664,13 @@
       }
       const label = sourceType === "counter"
         ? (counterRules.find((rule) => rule.ruleId === sourceId)?.name ?? `计数器 ${sourceId}`)
-        : (buffNames.get(sourceId)?.name ?? availableBuffMap.get(sourceId)?.name ?? `Buff ${sourceId}`);
+        : "";
       const nextEntry: InlineBuffEntry = {
         id: `inline_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
         sourceType,
         sourceId,
         label,
         format: "timer",
-        color: "#ffffff",
       };
       return {
         ...profile,
@@ -789,11 +849,10 @@
       groupSearchResults = { ...groupSearchResults, [groupId]: [] };
       return;
     }
-    void (async () => {
-      const res = await commands.searchBuffsByName(keyword, 120);
-      if (res.status !== "ok") return;
-      groupSearchResults = { ...groupSearchResults, [groupId]: res.data };
-    })();
+    groupSearchResults = {
+      ...groupSearchResults,
+      [groupId]: searchBuffsByName(keyword, buffAliases, 120),
+    };
   }
 
   function getGroupSearchKeyword(groupId: string) {
@@ -807,11 +866,10 @@
       groupPrioritySearchResults = { ...groupPrioritySearchResults, [groupId]: [] };
       return;
     }
-    void (async () => {
-      const res = await commands.searchBuffsByName(keyword, 120);
-      if (res.status !== "ok") return;
-      groupPrioritySearchResults = { ...groupPrioritySearchResults, [groupId]: res.data };
-    })();
+    groupPrioritySearchResults = {
+      ...groupPrioritySearchResults,
+      [groupId]: searchBuffsByName(keyword, buffAliases, 120),
+    };
   }
 
   function getGroupPrioritySearchKeyword(groupId: string) {
@@ -971,7 +1029,19 @@
       {selectedBuffs}
       {availableBuffs}
       {availableBuffMap}
-      {buffNames}
+      {buffAliasSectionExpanded}
+      {setBuffAliasSectionExpanded}
+      {buffAliasSearch}
+      {setBuffAliasSearch}
+      {buffAliasSearchResults}
+      {buffAliasEditingBuffId}
+      {setBuffAliasEditingBuffId}
+      {configuredBuffAliasIds}
+      {getBuffDisplayName}
+      {getBuffDefaultName}
+      {getBuffAlias}
+      {setBuffAlias}
+      {resetBuffAlias}
       {isBuffSelected}
       {toggleBuff}
       {clearBuffs}
@@ -980,6 +1050,10 @@
       {setBuffDisplayMode}
       {textBuffMaxVisible}
       {setTextBuffMaxVisible}
+      {textBuffPanelStyle}
+      {setTextBuffPanelNameColor}
+      {setTextBuffPanelValueColor}
+      {setTextBuffPanelProgressColor}
       {globalPrioritySearch}
       {globalPrioritySearchResults}
       {setGlobalPrioritySearch}
@@ -1025,7 +1099,7 @@
     <TabCustomPanel
       {counterRules}
       {availableBuffMap}
-      {buffNames}
+      {getBuffDisplayName}
       {inlineBuffSearch}
       {filteredInlineBuffSearchResults}
       {inlineBuffEntries}

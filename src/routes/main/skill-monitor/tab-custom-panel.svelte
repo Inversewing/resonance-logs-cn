@@ -1,12 +1,12 @@
 <script lang="ts">
-  import type { BuffDefinition, BuffNameInfo } from "$lib/bindings";
+  import type { BuffDefinition, BuffNameInfo } from "$lib/config/buff-name-table";
   import type { CustomPanelStyle, InlineBuffEntry } from "$lib/settings-store";
   import type { CounterRulePreset } from "$lib/skill-mappings";
 
   interface Props {
     counterRules: CounterRulePreset[];
     availableBuffMap: Map<number, BuffDefinition>;
-    buffNames: Map<number, BuffNameInfo>;
+    getBuffDisplayName: (buffId: number) => string;
     inlineBuffSearch: string;
     filteredInlineBuffSearchResults: BuffNameInfo[];
     inlineBuffEntries: InlineBuffEntry[];
@@ -27,7 +27,7 @@
   let {
     counterRules,
     availableBuffMap,
-    buffNames,
+    getBuffDisplayName,
     inlineBuffSearch,
     filteredInlineBuffSearchResults,
     inlineBuffEntries,
@@ -205,19 +205,23 @@
       {@const counterRule = entry.sourceType === "counter"
         ? counterRules.find((item) => item.ruleId === entry.sourceId)
         : null}
-      {@const buffName = entry.sourceType === "buff"
-        ? (buffNames.get(entry.sourceId)?.name ?? availableBuffMap.get(entry.sourceId)?.name ?? `#${entry.sourceId}`)
-        : null}
+      {@const buffName = entry.sourceType === "buff" ? getBuffDisplayName(entry.sourceId) : null}
       <div class="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
         <div class="text-xs text-muted-foreground">
           来源：{entry.sourceType === "counter" ? `计数器 - ${counterRule?.name ?? `#${entry.sourceId}`}` : `Buff - ${buffName}`}
         </div>
-        <input
-          class="w-full rounded border border-border/60 bg-muted/30 px-2 py-1.5 text-sm text-foreground"
-          value={entry.label}
-          placeholder="显示名称"
-          oninput={(event) => setInlineBuffLabel(entry.id, (event.currentTarget as HTMLInputElement).value)}
-        />
+        {#if entry.sourceType === "counter"}
+          <input
+            class="w-full rounded border border-border/60 bg-muted/30 px-2 py-1.5 text-sm text-foreground"
+            value={entry.label}
+            placeholder="显示名称"
+            oninput={(event) => setInlineBuffLabel(entry.id, (event.currentTarget as HTMLInputElement).value)}
+          />
+        {:else}
+          <div class="rounded border border-border/60 bg-muted/30 px-2 py-1.5 text-sm text-foreground">
+            {buffName}
+          </div>
+        {/if}
         <div class="flex justify-end gap-2">
           <button
             type="button"

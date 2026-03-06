@@ -1,6 +1,12 @@
 <script lang="ts">
-  import type { BuffDefinition, BuffNameInfo } from "$lib/bindings";
-  import type { BuffDisplayMode, BuffGroup } from "$lib/settings-store";
+  import ChevronDown from "virtual:icons/lucide/chevron-down";
+  import BuffSearchResultGrid from "./BuffSearchResultGrid.svelte";
+  import type { BuffDefinition, BuffNameInfo } from "$lib/config/buff-name-table";
+  import type {
+    BuffDisplayMode,
+    BuffGroup,
+    TextBuffPanelStyle,
+  } from "$lib/settings-store";
 
   interface Props {
     buffSearch: string;
@@ -9,7 +15,19 @@
     selectedBuffs: BuffDefinition[];
     availableBuffs: BuffDefinition[];
     availableBuffMap: Map<number, BuffDefinition>;
-    buffNames: Map<number, BuffNameInfo>;
+    buffAliasSectionExpanded: boolean;
+    setBuffAliasSectionExpanded: (expanded: boolean) => void;
+    buffAliasSearch: string;
+    setBuffAliasSearch: (value: string) => void;
+    buffAliasSearchResults: BuffNameInfo[];
+    buffAliasEditingBuffId: number | null;
+    setBuffAliasEditingBuffId: (buffId: number | null) => void;
+    configuredBuffAliasIds: number[];
+    getBuffDisplayName: (buffId: number) => string;
+    getBuffDefaultName: (buffId: number) => string;
+    getBuffAlias: (buffId: number) => string;
+    setBuffAlias: (buffId: number, alias: string) => void;
+    resetBuffAlias: (buffId: number) => void;
     isBuffSelected: (buffId: number) => boolean;
     toggleBuff: (buffId: number) => void;
     clearBuffs: () => void;
@@ -19,6 +37,10 @@
     setBuffDisplayMode: (mode: BuffDisplayMode) => void;
     textBuffMaxVisible: number;
     setTextBuffMaxVisible: (value: number) => void;
+    textBuffPanelStyle: TextBuffPanelStyle;
+    setTextBuffPanelNameColor: (value: string) => void;
+    setTextBuffPanelValueColor: (value: string) => void;
+    setTextBuffPanelProgressColor: (value: string) => void;
 
     globalPrioritySearch: string;
     globalPrioritySearchResults: BuffNameInfo[];
@@ -55,7 +77,19 @@
     selectedBuffs,
     availableBuffs,
     availableBuffMap,
-    buffNames,
+    buffAliasSectionExpanded,
+    setBuffAliasSectionExpanded,
+    buffAliasSearch,
+    setBuffAliasSearch,
+    buffAliasSearchResults,
+    buffAliasEditingBuffId,
+    setBuffAliasEditingBuffId,
+    configuredBuffAliasIds,
+    getBuffDisplayName,
+    getBuffDefaultName,
+    getBuffAlias,
+    setBuffAlias,
+    resetBuffAlias,
     isBuffSelected,
     toggleBuff,
     clearBuffs,
@@ -64,6 +98,10 @@
     setBuffDisplayMode,
     textBuffMaxVisible,
     setTextBuffMaxVisible,
+    textBuffPanelStyle,
+    setTextBuffPanelNameColor,
+    setTextBuffPanelValueColor,
+    setTextBuffPanelProgressColor,
     globalPrioritySearch,
     globalPrioritySearchResults,
     setGlobalPrioritySearch,
@@ -118,31 +156,13 @@
     />
 
     {#if buffSearch.trim().length > 0}
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(56px,1fr))] gap-3">
-        {#each filteredBuffs as buff (buff.baseId)}
-          {@const iconBuff = availableBuffMap.get(buff.baseId)}
-          <button
-            type="button"
-            class="relative group rounded-lg border overflow-hidden transition-colors {isBuffSelected(buff.baseId)
-              ? 'border-primary ring-1 ring-primary'
-              : 'border-border/60 hover:border-border'}"
-            title={buff.name}
-            onclick={() => toggleBuff(buff.baseId)}
-          >
-            {#if iconBuff}
-              <img
-                src={`/images/buff/${iconBuff.spriteFile}`}
-                alt={iconBuff.name}
-                class="w-full h-full object-contain aspect-square bg-muted/20"
-              />
-            {:else}
-              <div class="w-full h-full aspect-square flex items-center justify-center bg-muted/20 text-[11px] text-foreground p-1 text-center">
-                {buff.name.slice(0, 8)}
-              </div>
-            {/if}
-          </button>
-        {/each}
-      </div>
+      <BuffSearchResultGrid
+        items={filteredBuffs}
+        {availableBuffMap}
+        onSelect={toggleBuff}
+        isSelected={isBuffSelected}
+        emptyMessage="没有匹配的 Buff"
+      />
     {:else}
       <div class="text-xs text-muted-foreground">请输入关键词搜索 Buff</div>
     {/if}
@@ -152,17 +172,16 @@
       <div class="flex flex-wrap gap-2">
         {#each monitoredBuffIds as buffId (buffId)}
           {@const iconBuff = selectedBuffs.find((buff) => buff.baseId === buffId)}
-          {@const nameInfo = buffNames.get(buffId)}
           {#if iconBuff}
             <button
               type="button"
               class="relative rounded-md border border-border/60 overflow-hidden bg-muted/20 size-12 hover:border-border hover:bg-muted/30"
-              title={iconBuff.name}
+              title={getBuffDisplayName(buffId)}
               onclick={() => toggleBuff(iconBuff.baseId)}
             >
               <img
                 src={`/images/buff/${iconBuff.spriteFile}`}
-                alt={iconBuff.name}
+                alt={getBuffDisplayName(buffId)}
                 class="w-full h-full object-contain"
               />
             </button>
@@ -170,15 +189,145 @@
             <button
               type="button"
               class="rounded-md border border-border/60 bg-muted/20 px-2 py-1 text-[11px] text-foreground hover:border-border hover:bg-muted/30"
-              title={nameInfo?.name ?? `#${buffId}`}
+              title={getBuffDisplayName(buffId)}
               onclick={() => toggleBuff(buffId)}
             >
-              {nameInfo?.name ?? `#${buffId}`}
+              {getBuffDisplayName(buffId)}
             </button>
           {/if}
         {/each}
       </div>
     </div>
+
+  </div>
+
+  <div class="rounded-lg border border-border/60 bg-card/40 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.02)]">
+    <button
+      type="button"
+      class="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
+      onclick={() => setBuffAliasSectionExpanded(!buffAliasSectionExpanded)}
+    >
+      <div class="text-left">
+        <h2 class="text-base font-semibold text-foreground">Buff 别名设置</h2>
+        <p class="text-xs text-muted-foreground mt-1">
+          通过独立搜索设置任意 Buff 别名，默认隐藏以减少长列表占位
+        </p>
+      </div>
+      <ChevronDown
+        class="w-5 h-5 text-muted-foreground transition-transform duration-200 {buffAliasSectionExpanded
+          ? 'rotate-180'
+          : ''}"
+      />
+    </button>
+
+    {#if buffAliasSectionExpanded}
+      <div class="px-4 pb-4 space-y-4">
+        <div class="space-y-2">
+          <div class="text-xs text-muted-foreground">
+            已设置别名 {configuredBuffAliasIds.length}
+          </div>
+          <input
+            class="w-full sm:w-80 rounded border border-border/60 bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+            placeholder="搜索任意 Buff 后设置别名"
+            value={buffAliasSearch}
+            oninput={(event) =>
+              setBuffAliasSearch((event.currentTarget as HTMLInputElement).value)}
+          />
+        </div>
+
+        {#if buffAliasSearch.trim().length > 0}
+          <div class="space-y-2">
+            <div class="text-xs text-muted-foreground">搜索结果</div>
+            <BuffSearchResultGrid
+              items={buffAliasSearchResults}
+              {availableBuffMap}
+              onSelect={(buffId) => setBuffAliasEditingBuffId(buffId)}
+              isSelected={(buffId) => buffAliasEditingBuffId === buffId}
+              emptyMessage="没有匹配的 Buff"
+              limit={20}
+            />
+
+            {#if buffAliasEditingBuffId !== null}
+              <div class="rounded-md border border-border/60 bg-muted/20 p-3 space-y-2">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="text-sm text-foreground truncate">
+                      {getBuffDisplayName(buffAliasEditingBuffId)}
+                    </div>
+                    <div class="text-xs text-muted-foreground truncate">
+                      默认名：{getBuffDefaultName(buffAliasEditingBuffId)} | ID: {buffAliasEditingBuffId}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="text-xs px-2 py-1 rounded border border-border/60 hover:bg-muted/40 disabled:opacity-50"
+                    onclick={() => resetBuffAlias(buffAliasEditingBuffId)}
+                    disabled={!getBuffAlias(buffAliasEditingBuffId)}
+                  >
+                    恢复默认
+                  </button>
+                </div>
+                <input
+                  class="w-full rounded border border-border/60 bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder={getBuffDefaultName(buffAliasEditingBuffId)}
+                  value={getBuffAlias(buffAliasEditingBuffId)}
+                  oninput={(event) =>
+                    setBuffAlias(buffAliasEditingBuffId, (event.currentTarget as HTMLInputElement).value)}
+                />
+              </div>
+            {/if}
+          </div>
+        {:else if configuredBuffAliasIds.length > 0}
+          <div class="space-y-2">
+            <div class="text-xs text-muted-foreground">已设置的别名</div>
+            <div class="space-y-2">
+              {#each configuredBuffAliasIds as buffId (buffId)}
+                {@const iconBuff = availableBuffMap.get(buffId)}
+                <div class="rounded-md border border-border/60 bg-muted/20 p-3 space-y-2">
+                  <div class="flex items-center gap-3">
+                    {#if iconBuff}
+                      <img
+                        src={`/images/buff/${iconBuff.spriteFile}`}
+                        alt={getBuffDisplayName(buffId)}
+                        class="size-10 rounded border border-border/40 bg-muted/20 object-contain"
+                      />
+                    {:else}
+                      <div class="size-10 rounded border border-border/40 bg-muted/20 flex items-center justify-center text-[10px] text-muted-foreground">
+                        Buff
+                      </div>
+                    {/if}
+                    <div class="min-w-0 flex-1">
+                      <div class="text-sm text-foreground truncate">{getBuffDisplayName(buffId)}</div>
+                      <div class="text-xs text-muted-foreground truncate">
+                        默认名：{getBuffDefaultName(buffId)} | ID: {buffId}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="text-xs px-2 py-1 rounded border border-border/60 hover:bg-muted/40"
+                      onclick={() => resetBuffAlias(buffId)}
+                    >
+                      恢复默认
+                    </button>
+                  </div>
+                  <input
+                    class="w-full rounded border border-border/60 bg-muted/30 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder={getBuffDefaultName(buffId)}
+                    value={getBuffAlias(buffId)}
+                    oninput={(event) =>
+                      setBuffAlias(buffId, (event.currentTarget as HTMLInputElement).value)}
+                  />
+                </div>
+              {/each}
+            </div>
+          </div>
+        {:else}
+          <div class="text-xs text-muted-foreground">
+            暂未设置任何别名，输入上方搜索词后可对任意 Buff 设置别名。
+          </div>
+        {/if}
+      </div>
+    {/if}
   </div>
 
   <div class="rounded-lg border border-border/60 bg-card/40 p-4 space-y-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.02)]">
@@ -218,6 +367,35 @@
         oninput={(event) => setTextBuffMaxVisible(Number((event.currentTarget as HTMLInputElement).value))}
       />
     </label>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl">
+      <label class="flex items-center justify-between gap-2 rounded border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+        名称颜色
+        <input
+          type="color"
+          value={textBuffPanelStyle.nameColor}
+          class="h-7 w-12 rounded border border-border/60 bg-transparent p-0"
+          onchange={(event) => setTextBuffPanelNameColor((event.currentTarget as HTMLInputElement).value)}
+        />
+      </label>
+      <label class="flex items-center justify-between gap-2 rounded border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+        数值颜色
+        <input
+          type="color"
+          value={textBuffPanelStyle.valueColor}
+          class="h-7 w-12 rounded border border-border/60 bg-transparent p-0"
+          onchange={(event) => setTextBuffPanelValueColor((event.currentTarget as HTMLInputElement).value)}
+        />
+      </label>
+      <label class="flex items-center justify-between gap-2 rounded border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+        进度条颜色
+        <input
+          type="color"
+          value={textBuffPanelStyle.progressColor}
+          class="h-7 w-12 rounded border border-border/60 bg-transparent p-0"
+          onchange={(event) => setTextBuffPanelProgressColor((event.currentTarget as HTMLInputElement).value)}
+        />
+      </label>
+    </div>
   </div>
 
   <div class="rounded-lg border border-border/60 bg-card/40 p-4 space-y-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.02)]">
@@ -241,7 +419,7 @@
                 onclick={() => toggleGlobalPriority(item.baseId)}
               >
                 {#if iconBuff}
-                  <img src={`/images/buff/${iconBuff.spriteFile}`} alt={iconBuff.name} class="w-full h-10 object-contain" />
+                  <img src={`/images/buff/${iconBuff.spriteFile}`} alt={item.name} class="w-full h-10 object-contain" />
                 {/if}
               </button>
             {/if}
@@ -250,12 +428,10 @@
       {/if}
       <div class="space-y-1">
         {#each buffPriorityIds as buffId, idx (buffId)}
-          {@const iconBuff = availableBuffMap.get(buffId)}
-          {@const nameInfo = buffNames.get(buffId)}
           <div class="flex items-center gap-2 rounded border border-border/60 bg-muted/20 px-2 py-1">
             <span class="w-6 text-center text-xs text-muted-foreground">{idx + 1}</span>
             <span class="flex-1 text-xs text-foreground truncate">
-              {nameInfo?.name ?? iconBuff?.name ?? `#${buffId}`}
+              {getBuffDisplayName(buffId)}
             </span>
             <button type="button" class="text-xs px-2 py-0.5 rounded border border-border/60 hover:bg-muted/40" onclick={() => toggleGlobalPriority(buffId)}>移除</button>
             <button type="button" class="text-xs px-2 py-0.5 rounded border border-border/60 hover:bg-muted/40 disabled:opacity-50" onclick={() => moveGlobalPriority(buffId, "up")} disabled={idx === 0}>上移</button>
@@ -375,7 +551,7 @@
                       onclick={() => toggleBuffInGroup(group.id, item.baseId)}
                     >
                       {#if iconBuff}
-                        <img src={`/images/buff/${iconBuff.spriteFile}`} alt={iconBuff.name} class="w-full h-10 object-contain" />
+                        <img src={`/images/buff/${iconBuff.spriteFile}`} alt={item.name} class="w-full h-10 object-contain" />
                       {/if}
                     </button>
                   {/each}
@@ -402,19 +578,17 @@
                         onclick={() => togglePriorityInGroup(group.id, item.baseId)}
                       >
                         {#if iconBuff}
-                          <img src={`/images/buff/${iconBuff.spriteFile}`} alt={iconBuff.name} class="w-full h-10 object-contain" />
+                          <img src={`/images/buff/${iconBuff.spriteFile}`} alt={item.name} class="w-full h-10 object-contain" />
                         {/if}
                       </button>
                     {/each}
                   </div>
                 {/if}
                 {#each getGroupPriorityIds(group) as buffId, idx (buffId)}
-                  {@const iconBuff = availableBuffMap.get(buffId)}
-                  {@const nameInfo = buffNames.get(buffId)}
                   <div class="flex items-center gap-2 rounded border border-border/60 bg-muted/20 px-2 py-1">
                     <span class="w-6 text-center text-xs text-muted-foreground">{idx + 1}</span>
                     <span class="flex-1 text-xs text-foreground truncate">
-                      {nameInfo?.name ?? iconBuff?.name ?? `#${buffId}`}
+                      {getBuffDisplayName(buffId)}
                     </span>
                     <button type="button" class="text-xs px-2 py-0.5 rounded border border-border/60 hover:bg-muted/40" onclick={() => togglePriorityInGroup(group.id, buffId)}>移除</button>
                     <button type="button" class="text-xs px-2 py-0.5 rounded border border-border/60 hover:bg-muted/40 disabled:opacity-50" onclick={() => moveGroupPriority(group.id, buffId, "up")} disabled={idx === 0}>上移</button>

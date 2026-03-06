@@ -9,7 +9,10 @@ import {
   type BuffUpdateState,
   type CounterUpdateState,
 } from "$lib/api";
-import { commands, type BuffDefinition } from "$lib/bindings";
+import {
+  getAvailableBuffDefinitions,
+  type BuffDefinition,
+} from "$lib/config/buff-name-table";
 import {
   ensureBuffGroups,
   ensureCustomPanelStyle,
@@ -17,11 +20,11 @@ import {
   ensureOverlayPositions,
   ensureOverlaySizes,
   ensureOverlayVisibility,
+  ensureTextBuffPanelStyle,
 } from "./overlay-utils";
 import {
   activeProfile,
   updateActiveProfile,
-  monitoredBuffIds,
 } from "./overlay-profile.svelte.js";
 import { overlayRuntime } from "./overlay-runtime.svelte.js";
 import {
@@ -51,8 +54,7 @@ export function initOverlay() {
 
   ensureActiveProfileDefaults();
   void setEditMode(false);
-  void loadAvailableBuffs();
-  syncMonitoredBuffNames();
+  loadAvailableBuffs();
 
   const unlistenEditToggle = listen("overlay-edit-toggle", () => {
     void setEditMode(!overlayRuntime.isEditing);
@@ -66,7 +68,6 @@ export function initOverlay() {
       }
     }
     overlayRuntime.buffMap = next;
-    void preloadBuffNames(Array.from(next.keys()));
   });
   const unlistenCounter = onBuffCounterUpdate((event) => {
     const next = new Map<number, CounterUpdateState>();
@@ -122,36 +123,9 @@ export function initOverlay() {
   return overlayRuntime.cleanup;
 }
 
-export async function loadBuffNames(baseIds: number[]) {
-  if (!overlayRuntime.isInitialized || baseIds.length === 0) return;
-  const uniq = Array.from(new Set(baseIds)).filter(
-    (id) => !overlayRuntime.buffNameMap.has(id),
-  );
-  if (uniq.length === 0) return;
-  const res = await commands.getBuffNames(uniq);
-  if (res.status !== "ok") return;
-  const next = new Map(overlayRuntime.buffNameMap);
-  for (const item of res.data) {
-    next.set(item.baseId, item.name);
-  }
-  overlayRuntime.buffNameMap = next;
-}
-
-export function syncMonitoredBuffNames() {
-  const ids = monitoredBuffIds();
-  if (ids.length === 0) return;
-  void preloadBuffNames(ids);
-}
-
-function preloadBuffNames(baseIds: number[]) {
-  return loadBuffNames(baseIds);
-}
-
-async function loadAvailableBuffs() {
-  const res = await commands.getAvailableBuffs();
-  if (res.status !== "ok") return;
+function loadAvailableBuffs() {
   const next = new Map<number, BuffDefinition>();
-  for (const buff of res.data) {
+  for (const buff of getAvailableBuffDefinitions()) {
     next.set(buff.baseId, buff);
   }
   overlayRuntime.buffDefinitions = next;
@@ -167,6 +141,7 @@ function ensureActiveProfileDefaults() {
       !profile.buffDisplayMode ||
       !profile.buffGroups ||
       !profile.customPanelStyle ||
+      !profile.textBuffPanelStyle ||
       !profile.textBuffMaxVisible)
   ) {
     updateActiveProfile((profile) => ({
@@ -178,6 +153,7 @@ function ensureActiveProfileDefaults() {
       buffGroups: ensureBuffGroups(profile),
       individualMonitorAllGroup: ensureIndividualMonitorAllGroup(profile),
       customPanelStyle: ensureCustomPanelStyle(profile),
+      textBuffPanelStyle: ensureTextBuffPanelStyle(profile),
       textBuffMaxVisible: Math.max(
         1,
         Math.min(20, profile.textBuffMaxVisible ?? 10),

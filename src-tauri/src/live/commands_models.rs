@@ -241,23 +241,6 @@ pub struct BuffUpdateState {
     pub source_config_id: i32,
 }
 
-#[derive(specta::Type, serde::Serialize, serde::Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct BuffDefinition {
-    pub base_id: i32,
-    pub name: String,
-    pub sprite_file: String,
-    pub search_keywords: Vec<String>,
-}
-
-#[derive(specta::Type, serde::Serialize, serde::Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct BuffNameInfo {
-    pub base_id: i32,
-    pub name: String,
-    pub has_sprite_file: bool,
-}
-
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct BuffUpdatePayload {

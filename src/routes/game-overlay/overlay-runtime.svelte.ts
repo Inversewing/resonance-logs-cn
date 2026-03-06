@@ -4,8 +4,9 @@ import type {
   CounterUpdateState,
   SkillCdState,
 } from "$lib/api";
-import type { BuffDefinition } from "$lib/bindings";
+import type { BuffDefinition } from "$lib/config/buff-name-table";
 import type {
+  CustomPanelDisplayRow,
   DragState,
   IconBuffDisplay,
   ResizeState,
@@ -28,9 +29,9 @@ export const overlayRuntime = $state({
   counterMap: new Map<number, CounterUpdateState>(),
   panelAttrMap: new Map<number, number>(),
   buffDefinitions: new Map<number, BuffDefinition>(),
-  buffNameMap: new Map<number, string>(),
   iconDisplayBuffs: [] as IconBuffDisplay[],
   textBuffs: [] as TextBuffDisplay[],
+  customPanelRows: [] as CustomPanelDisplayRow[],
   isEditing: false,
   dragState: null as DragState | null,
   resizeState: null as ResizeState | null,
@@ -70,10 +71,6 @@ export function panelAttrMap() {
 
 export function buffDefinitions() {
   return overlayRuntime.buffDefinitions;
-}
-
-export function buffNameMap() {
-  return overlayRuntime.buffNameMap;
 }
 
 export function iconDisplayBuffs() {

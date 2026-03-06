@@ -3,7 +3,6 @@ import type {
   CounterUpdateState,
   SkillCdState,
 } from "$lib/api";
-import type { BuffDefinition } from "$lib/bindings";
 import type {
   BuffGroup,
   CustomPanelStyle,
@@ -14,6 +13,7 @@ import type {
   PanelAreaRowRef,
   PanelAttrConfig,
   SkillMonitorProfile,
+  TextBuffPanelStyle,
 } from "$lib/settings-store";
 import { findAnySkillByBaseId } from "$lib/skill-mappings";
 import {
@@ -27,6 +27,7 @@ import type {
   CustomPanelDisplayRow,
   PanelAreaDisplayRow,
   SkillDisplay,
+  TextBuffDisplay,
 } from "./overlay-types";
 
 export function ensureOverlayPositions(
@@ -117,6 +118,17 @@ export function ensureCustomPanelStyle(
   };
 }
 
+export function ensureTextBuffPanelStyle(
+  profile: SkillMonitorProfile | null,
+): TextBuffPanelStyle {
+  const current = profile?.textBuffPanelStyle;
+  return {
+    nameColor: current?.nameColor ?? "#ffffff",
+    valueColor: current?.valueColor ?? "#ffffff",
+    progressColor: current?.progressColor ?? "#ffffff",
+  };
+}
+
 export function formatAttrValue(
   value: number,
   format: PanelAttrConfig["format"],
@@ -163,29 +175,51 @@ export function getBuffRemainPercent(
   );
 }
 
+export function buildBuffTextRow(
+  key: string,
+  label: string,
+  buff: BuffUpdateState,
+  now: number,
+  isPlaceholder = false,
+): TextBuffDisplay | null {
+  const active = isBuffActive(buff, now);
+  if (!active && !isPlaceholder) return null;
+
+  if (buff.durationMs <= 0 && buff.layer <= 1 && !isPlaceholder) {
+    return null;
+  }
+
+  const remainingMs = getBuffRemainingMs(buff, now);
+  const layer = Math.max(1, buff.layer);
+
+  return {
+    key,
+    label,
+    valueText: isPlaceholder ? "--" : formatTimerText(remainingMs),
+    metaText: layer > 1 ? `x${layer}` : undefined,
+    progressPercent: isPlaceholder ? 0 : getBuffRemainPercent(buff, now),
+    showProgress: !isPlaceholder && buff.durationMs > 0,
+    ...(isPlaceholder ? { isPlaceholder: true } : {}),
+  };
+}
+
 export function getCustomPanelDisplayRow(
   entry: InlineBuffEntry,
   now: number,
   buffMap: Map<number, BuffUpdateState>,
   counterMap: Map<number, CounterUpdateState>,
   counterRuleMap: Map<number, { linkedBuffId: number }>,
+  resolveBuffName: (baseId: number) => string,
 ): CustomPanelDisplayRow | null {
   if (entry.sourceType === "buff") {
     const buff = buffMap.get(entry.sourceId);
-    const active = isBuffActive(buff, now);
-    if (!active || !buff) return null;
-    const remainingMs = getBuffRemainingMs(buff, now);
-    const layer = Math.max(1, buff.layer);
-    return {
-      key: `buff_${entry.id}`,
-      label: entry.label,
-      valueText:
-        layer > 1
-          ? `x${layer} ${formatTimerText(remainingMs)}`
-          : formatTimerText(remainingMs),
-      progressPercent: getBuffRemainPercent(buff, now),
-      showProgress: buff.durationMs > 0,
-    };
+    if (!buff) return null;
+    return buildBuffTextRow(
+      `inline_buff_${entry.id}`,
+      resolveBuffName(entry.sourceId),
+      buff,
+      now,
+    );
   }
 
   const counter = counterMap.get(entry.sourceId);
@@ -204,17 +238,19 @@ export function getCustomPanelDisplayRow(
   }
   if (counter.isCounting) {
     return {
-      key: `counter_${entry.id}`,
+      key: `inline_counter_${entry.id}`,
       label: entry.label,
       valueText: `${Math.max(0, counter.currentCount)}`,
+      metaText: undefined,
       progressPercent: 0,
       showProgress: false,
     };
   }
   return {
-    key: `counter_${entry.id}`,
+    key: `inline_counter_${entry.id}`,
     label: entry.label,
-    valueText: active ? `冷却中 ${formatTimerText(remainingMs)}` : "冷却中 --",
+    valueText: active ? formatTimerText(remainingMs) : "--",
+    metaText: active ? "冷却中" : "冷却中",
     progressPercent: getBuffRemainPercent(linkedBuff, now),
     showProgress: active && Boolean(linkedBuff && linkedBuff.durationMs > 0),
   };
@@ -269,12 +305,10 @@ export function ensureInlineBuffEntries(
     sourceType: entry.sourceType ?? "buff",
     sourceId: entry.sourceId,
     label:
-      entry.label ??
-      (entry.sourceType === "counter"
-        ? `计数器 ${entry.sourceId}`
-        : `Buff ${entry.sourceId}`),
+      entry.sourceType === "counter"
+        ? (entry.label ?? `计数器 ${entry.sourceId}`)
+        : (entry.label ?? ""),
     format: entry.format ?? "timer",
-    color: entry.color ?? "#ffffff",
   }));
 }
 
@@ -420,14 +454,6 @@ export function getResourcePreciseValue(
   }
   const scale = RESOURCE_SCALES[index] ?? 1;
   return raw / scale;
-}
-
-export function getBuffName(
-  definition: BuffDefinition | undefined,
-  buffNameMap: Map<number, string>,
-  baseId: number,
-): string {
-  return definition?.name ?? buffNameMap.get(baseId) ?? `#${baseId}`;
 }
 
 function clampRounded(value: number, min: number, max: number): number {

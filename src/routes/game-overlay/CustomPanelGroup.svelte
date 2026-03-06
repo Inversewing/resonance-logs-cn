@@ -1,4 +1,5 @@
 <script lang="ts">
+  import TextBuffRow from "./TextBuffRow.svelte";
   import {
     customPanelRows,
     customPanelStyle,
@@ -33,33 +34,19 @@
 
     <div class="custom-panel-list" style:gap={`${styleConfig.gap}px`}>
       {#each rows as row (row.key)}
-        <div class="custom-panel-row">
-          <div class="custom-panel-main" style:gap={`${styleConfig.columnGap}px`}>
-            <span
-              class="custom-panel-label"
-              style:font-size={`${styleConfig.fontSize}px`}
-              style:color={styleConfig.nameColor}
-            >
-              {row.label}
-            </span>
-            <span
-              class="custom-panel-value"
-              style:font-size={`${Math.max(10, styleConfig.fontSize + 2)}px`}
-              style:color={styleConfig.valueColor}
-            >
-              {row.valueText}
-            </span>
-          </div>
-          {#if row.showProgress}
-            <div class="custom-panel-progress">
-              <div
-                class="custom-panel-progress-fill"
-                style:width={`${row.progressPercent}%`}
-                style:background={styleConfig.progressColor}
-              ></div>
-            </div>
-          {/if}
-        </div>
+        <TextBuffRow
+          label={row.label}
+          valueText={row.valueText}
+          metaText={row.metaText}
+          progressPercent={row.progressPercent}
+          showProgress={row.showProgress}
+          nameColor={styleConfig.nameColor}
+          valueColor={styleConfig.valueColor}
+          progressColor={styleConfig.progressColor}
+          fontSize={styleConfig.fontSize}
+          columnGap={styleConfig.columnGap}
+          placeholder={row.isPlaceholder}
+        />
       {/each}
     </div>
 
@@ -94,46 +81,5 @@
     display: flex;
     flex-direction: column;
     min-width: 220px;
-  }
-
-  .custom-panel-row {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .custom-panel-main {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-  }
-
-  .custom-panel-label {
-    font-weight: 600;
-    line-height: 1;
-    text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .custom-panel-value {
-    font-weight: 700;
-    line-height: 1;
-    text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-  }
-
-  .custom-panel-progress {
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.2);
-    overflow: hidden;
-  }
-
-  .custom-panel-progress-fill {
-    height: 100%;
-    transition: width 100ms linear;
   }
 </style>

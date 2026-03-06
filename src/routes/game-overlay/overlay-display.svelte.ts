@@ -1,17 +1,19 @@
 import { findSpecialBuffDisplays, getCounterRules } from "$lib/skill-mappings";
+import { resolveBuffDisplayName } from "$lib/config/buff-name-table";
 import type { CustomPanelDisplayRow, IconBuffDisplay, SkillDisplay, TextBuffDisplay } from "./overlay-types";
 import {
+  buildBuffTextRow,
   buildPanelAreaRows,
   computeDisplay,
   ensureBuffGroups,
   ensureIndividualMonitorAllGroup,
-  getBuffName,
   getCustomPanelDisplayRow,
   getResourcePreciseValue as getResourcePreciseValueValue,
   getResourceValue as getResourceValueValue,
 } from "./overlay-utils";
 import {
   activeProfile,
+  buffAliases,
   buffDisplayMode,
   enabledPanelAttrs,
   inlineBuffEntries,
@@ -22,7 +24,6 @@ import {
 } from "./overlay-profile.svelte.js";
 import {
   buffDefinitions,
-  buffNameMap,
   overlayRuntime,
 } from "./overlay-runtime.svelte.js";
 
@@ -120,22 +121,6 @@ const _limitedTextBuffs = $derived.by(() =>
   overlayRuntime.textBuffs.slice(0, textBuffMaxVisible()),
 );
 
-const _customPanelRows = $derived.by<CustomPanelDisplayRow[]>(() => {
-  const now = Date.now();
-  const rows: CustomPanelDisplayRow[] = [];
-  for (const entry of inlineBuffEntries()) {
-    const row = getCustomPanelDisplayRow(
-      entry,
-      now,
-      overlayRuntime.buffMap,
-      overlayRuntime.counterMap,
-      _counterRuleMap,
-    );
-    if (row) rows.push(row);
-  }
-  return rows;
-});
-
 export function normalizedBuffGroups() {
   return _normalizedBuffGroups;
 }
@@ -177,7 +162,7 @@ export function limitedTextBuffs() {
 }
 
 export function customPanelRows() {
-  return _customPanelRows;
+  return overlayRuntime.customPanelRows;
 }
 
 export function getResourceValue(index: number): number {
@@ -200,13 +185,14 @@ export function updateDisplay() {
   const now = Date.now();
   const selectedBuffIds = monitoredBuffIds();
   const buffDefinitionsMap = buffDefinitions();
-  const buffNames = buffNameMap();
   const skippedInlineBuffIds = inlineBuffIds();
+  const currentBuffAliases = buffAliases();
   const classKey = selectedClassKey();
   const nextActiveBuffIds = new Set<number>();
   const nextBuffDurationPercents = new Map<number, number>();
   const nextIconBuffs: IconBuffDisplay[] = [];
   const nextTextBuffs: TextBuffDisplay[] = [];
+  const nextCustomPanelRows: CustomPanelDisplayRow[] = [];
 
   for (const [baseId, buff] of overlayRuntime.buffMap) {
     if (skippedInlineBuffIds.has(baseId)) continue;
@@ -227,10 +213,11 @@ export function updateDisplay() {
       continue;
     }
 
+    // Filter passive/infinite single-stack buffs from both icon and text displays.
     if (buff.durationMs <= 0 && buff.layer <= 1) continue;
 
     const definition = buffDefinitionsMap.get(baseId);
-    const name = getBuffName(definition, buffNames, baseId);
+    const name = resolveBuffDisplayName(baseId, currentBuffAliases);
     const timeText = buff.durationMs > 0 ? (remaining / 1000).toFixed(1) : "∞";
     const specialConfig = _specialBuffConfigMap.get(baseId);
     const specialImages = specialConfig
@@ -254,23 +241,18 @@ export function updateDisplay() {
         ...(specialImages.length > 0 ? { specialImages } : {}),
       });
     } else {
-      nextTextBuffs.push({
-        baseId,
-        name,
-        text: timeText,
-        remainPercent,
-        layer: buff.layer,
-      });
+      const row = buildBuffTextRow(`buff_${baseId}`, name, buff, now);
+      if (row) nextTextBuffs.push(row);
     }
   }
 
   if (overlayRuntime.isEditing) {
     const iconIds = new Set(nextIconBuffs.map((buff) => buff.baseId));
-    const textIds = new Set(nextTextBuffs.map((buff) => buff.baseId));
+    const textIds = new Set(nextTextBuffs.map((buff) => buff.key));
     for (const baseId of selectedBuffIds) {
-      if (iconIds.has(baseId) || textIds.has(baseId)) continue;
+      if (iconIds.has(baseId) || textIds.has(`buff_${baseId}`)) continue;
       const definition = buffDefinitionsMap.get(baseId);
-      const name = getBuffName(definition, buffNames, baseId);
+      const name = resolveBuffDisplayName(baseId, currentBuffAliases);
       const specialConfig = _specialBuffConfigMap.get(baseId);
       const placeholderSpecialImages =
         specialConfig && specialConfig.layerImages.length > 0
@@ -289,14 +271,21 @@ export function updateDisplay() {
             : {}),
         });
       } else {
-        nextTextBuffs.push({
-          baseId,
+        const row = buildBuffTextRow(
+          `buff_${baseId}`,
           name,
-          text: "--",
-          remainPercent: 0,
-          layer: 1,
-          isPlaceholder: true,
-        });
+          {
+            baseId,
+            buffUuid: 0,
+            durationMs: 0,
+            createTimeMs: now,
+            layer: 1,
+            sourceConfigId: 0,
+          },
+          now,
+          true,
+        );
+        if (row) nextTextBuffs.push(row);
       }
     }
   }
@@ -309,10 +298,23 @@ export function updateDisplay() {
     }
   }
 
+  for (const entry of inlineBuffEntries()) {
+    const row = getCustomPanelDisplayRow(
+      entry,
+      now,
+      overlayRuntime.buffMap,
+      overlayRuntime.counterMap,
+      _counterRuleMap,
+      (baseId) => resolveBuffDisplayName(baseId, currentBuffAliases),
+    );
+    if (row) nextCustomPanelRows.push(row);
+  }
+
   overlayRuntime.activeBuffIds = nextActiveBuffIds;
   overlayRuntime.buffDurationPercents = nextBuffDurationPercents;
   overlayRuntime.displayMap = nextDisplayMap;
   overlayRuntime.iconDisplayBuffs = nextIconBuffs;
   overlayRuntime.textBuffs = nextTextBuffs;
+  overlayRuntime.customPanelRows = nextCustomPanelRows;
   overlayRuntime.rafId = requestAnimationFrame(updateDisplay);
 }

@@ -21,14 +21,17 @@ export type IconBuffDisplay = {
   specialImages?: string[];
 };
 
-export type TextBuffDisplay = {
-  baseId: number;
-  name: string;
-  text: string;
-  remainPercent: number;
-  layer: number;
-  isPlaceholder?: boolean;
+export type TextBuffRowDisplay = {
+  key: string;
+  label: string;
+  valueText: string;
+  metaText?: string | undefined;
+  progressPercent: number;
+  showProgress: boolean;
+  isPlaceholder?: boolean | undefined;
 };
+
+export type TextBuffDisplay = TextBuffRowDisplay;
 
 export type PanelAreaDisplayRow = {
   key: string;
@@ -61,10 +64,4 @@ export type ResizeState = {
   startValue: number;
 };
 
-export type CustomPanelDisplayRow = {
-  key: string;
-  label: string;
-  valueText: string;
-  progressPercent: number;
-  showProgress: boolean;
-};
+export type CustomPanelDisplayRow = TextBuffRowDisplay;
