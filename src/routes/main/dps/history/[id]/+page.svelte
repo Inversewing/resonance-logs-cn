@@ -119,7 +119,12 @@
     );
   });
 
-  let encounterDurationMinutes = $derived.by(() => Math.floor(encounterDurationSeconds / 60));
+  function formatEncounterDuration(durationSeconds: number) {
+    const secs = Math.max(0, Math.round(durationSeconds));
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  }
 
   function buildHistoryPlayers(
     entities: HistoryEntityData[],
@@ -675,7 +680,7 @@
               <div class="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                 <span>{new Date(encounter.startedAtMs).toLocaleString()}</span>
                 <span class="text-muted-foreground">•</span>
-                <span>时长：{encounterDurationMinutes} 分钟</span>
+                <span>时长：{formatEncounterDuration(encounterDurationSeconds)}</span>
                 <span class="text-muted-foreground">•</span>
                 <span class="text-[11px] text-muted-foreground">#{encounter.id}</span>
               </div>

@@ -272,9 +272,8 @@
 		loadEncounters(initialPage);
 	});
 
-	function fmtDuration(startMs: number, endMs?: number | null) {
-		const end = endMs ?? Date.now();
-		const secs = Math.max(0, Math.round((end - startMs) / 1000));
+	function fmtDuration(durationSeconds: number) {
+		const secs = Math.max(0, Math.round(durationSeconds));
 		const m = Math.floor(secs / 60);
 		const s = secs % 60;
 		return `${m}:${s.toString().padStart(2, "0")}`;
@@ -646,7 +645,7 @@
 							{/if}
 						</td>
 						<td class="px-3 py-2 text-sm text-muted-foreground"
-							>{fmtDuration(enc.startedAtMs, enc.endedAtMs)}</td
+							>{fmtDuration(enc.duration)}</td
 						>
 						<td class="px-3 py-2 text-sm text-muted-foreground">
 							<div class="leading-snug">
