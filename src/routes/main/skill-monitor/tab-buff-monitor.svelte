@@ -232,9 +232,6 @@
     >
       <div class="text-left">
         <h2 class="text-base font-semibold text-foreground">Buff 别名设置</h2>
-        <p class="text-xs text-muted-foreground mt-1">
-          通过独立搜索设置任意 Buff 别名，默认隐藏以减少长列表占位
-        </p>
       </div>
       <ChevronDown
         class="w-5 h-5 text-muted-foreground transition-transform duration-200 {buffAliasSectionExpanded
@@ -615,20 +612,51 @@
                   setGroupSearchKeyword(group.id, (event.currentTarget as HTMLInputElement).value)}
               />
               {#if getGroupSearchResults(group).length > 0}
-                <div class="grid grid-cols-[repeat(auto-fill,minmax(50px,1fr))] gap-2">
-                  {#each getGroupSearchResults(group).slice(0, 40) as item (item.baseId)}
-                    {@const iconBuff = availableBuffMap.get(item.baseId)}
-                    <button
-                      type="button"
-                      class="rounded border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors p-1"
-                      title={item.name}
-                      onclick={() => toggleBuffInGroup(group.id, item.baseId)}
-                    >
-                      {#if iconBuff}
-                        <img src={`/images/buff/${iconBuff.spriteFile}`} alt={item.name} class="w-full h-10 object-contain" />
-                      {/if}
-                    </button>
-                  {/each}
+                <BuffSearchResultGrid
+                  items={getGroupSearchResults(group)}
+                  {availableBuffMap}
+                  onSelect={(buffId) => toggleBuffInGroup(group.id, buffId)}
+                  emptyMessage="没有可添加的 Buff"
+                  limit={40}
+                  minColumnWidth={50}
+                />
+              {/if}
+
+              {#if !group.monitorAll}
+                <div class="space-y-2">
+                  <div class="text-xs text-muted-foreground">已加入分组 {group.buffIds.length}</div>
+                  <div class="flex flex-wrap gap-2">
+                    {#if group.buffIds.length > 0}
+                      {#each group.buffIds as buffId (buffId)}
+                        {@const selectedBuff = availableBuffMap.get(buffId)}
+                        {#if selectedBuff}
+                          <button
+                            type="button"
+                            class="relative rounded-md border border-border/60 overflow-hidden bg-muted/20 size-12 hover:border-border hover:bg-muted/30"
+                            title={`点击移除：${getBuffDisplayName(buffId)}`}
+                            onclick={() => toggleBuffInGroup(group.id, buffId)}
+                          >
+                            <img
+                              src={`/images/buff/${selectedBuff.spriteFile}`}
+                              alt={getBuffDisplayName(buffId)}
+                              class="w-full h-full object-contain"
+                            />
+                          </button>
+                        {:else}
+                          <button
+                            type="button"
+                            class="rounded-md border border-border/60 bg-muted/20 px-2 py-1 text-[11px] text-foreground hover:border-border hover:bg-muted/30"
+                            title={`点击移除：${getBuffDisplayName(buffId)}`}
+                            onclick={() => toggleBuffInGroup(group.id, buffId)}
+                          >
+                            {getBuffDisplayName(buffId)}
+                          </button>
+                        {/if}
+                      {/each}
+                    {:else}
+                      <div class="text-xs text-muted-foreground">尚未添加 Buff 到此分组</div>
+                    {/if}
+                  </div>
                 </div>
               {/if}
 
@@ -642,21 +670,14 @@
                     setGroupPrioritySearchKeyword(group.id, (event.currentTarget as HTMLInputElement).value)}
                 />
                 {#if getGroupPrioritySearchResults(group).length > 0}
-                  <div class="grid grid-cols-[repeat(auto-fill,minmax(50px,1fr))] gap-2">
-                    {#each getGroupPrioritySearchResults(group).slice(0, 40) as item (item.baseId)}
-                      {@const iconBuff = availableBuffMap.get(item.baseId)}
-                      <button
-                        type="button"
-                        class="rounded border border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors p-1"
-                        title={item.name}
-                        onclick={() => togglePriorityInGroup(group.id, item.baseId)}
-                      >
-                        {#if iconBuff}
-                          <img src={`/images/buff/${iconBuff.spriteFile}`} alt={item.name} class="w-full h-10 object-contain" />
-                        {/if}
-                      </button>
-                    {/each}
-                  </div>
+                  <BuffSearchResultGrid
+                    items={getGroupPrioritySearchResults(group)}
+                    {availableBuffMap}
+                    onSelect={(buffId) => togglePriorityInGroup(group.id, buffId)}
+                    emptyMessage="没有可添加到优先级的 Buff"
+                    limit={40}
+                    minColumnWidth={50}
+                  />
                 {/if}
                 {#each getGroupPriorityIds(group) as buffId, idx (buffId)}
                   <div class="flex items-center gap-2 rounded border border-border/60 bg-muted/20 px-2 py-1">
