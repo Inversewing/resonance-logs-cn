@@ -99,6 +99,8 @@ export const AVAILABLE_PANEL_ATTRS: PanelAttrConfig[] = [
   { attrId: 11780, label: "幸运", color: "#a78bfa", enabled: false, format: "percent" },
   { attrId: 11940, label: "精通", color: "#60a5fa", enabled: false, format: "percent" },
   { attrId: 11950, label: "全能", color: "#34d399", enabled: false, format: "percent" },
+  { attrId: 11760, label: "冷却缩减", color: "#f97316", enabled: false, format: "percent" },
+  { attrId: 11960, label: "冷却加速", color: "#38bdf8", enabled: false, format: "percent" },
   { attrId: 11010, label: "力量", color: "#f87171", enabled: false, format: "integer" },
   { attrId: 11020, label: "智力", color: "#818cf8", enabled: false, format: "integer" },
   { attrId: 11030, label: "敏捷", color: "#4ade80", enabled: false, format: "integer" },
