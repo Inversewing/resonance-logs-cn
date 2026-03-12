@@ -54,9 +54,6 @@
     const inlineCounterRuleIds = inlineBuffEntries
       .filter((entry) => entry.sourceType === "counter")
       .map((entry) => entry.sourceId);
-    const buffPriorityIds = (activeProfile?.buffPriorityIds ?? []).filter((id) =>
-      monitoredBuffIds.includes(id),
-    );
     const buffDisplayMode = activeProfile?.buffDisplayMode ?? "individual";
     const buffGroups = activeProfile?.buffGroups ?? [];
     const individualAllGroup = activeProfile?.individualMonitorAllGroup ?? null;
@@ -84,12 +81,6 @@
         ...defaultLinkedBuffIds,
       ]),
     );
-    const mergedPriorityIds = Array.from(
-      new Set([
-        ...buffPriorityIds,
-        ...buffGroups.flatMap((group) => group.priorityBuffIds ?? []),
-      ]),
-    );
     const monitoredPanelAttrIds = monitoredPanelAttrs
       .filter((item) => item.enabled)
       .map((item) => item.attrId);
@@ -107,7 +98,6 @@
       enabled,
       monitoredSkillIds,
       mergedBuffIds,
-      mergedPriorityIds,
       monitoredPanelAttrIds,
       anyGroupMonitorAll,
       activeCounterRuleIds,
@@ -122,14 +112,12 @@
             await commands.setMonitorAllBuff(anyGroupMonitorAll);
             await commands.setMonitoredSkills(monitoredSkillIds);
             await commands.setMonitoredBuffs(mergedBuffIds);
-            await commands.setBuffPriority(mergedPriorityIds);
             await setMonitoredPanelAttrs(monitoredPanelAttrIds);
             await commands.setBuffCounterRules(enabledCounterRules);
           } else {
             await commands.setMonitorAllBuff(false);
             await commands.setMonitoredSkills([]);
             await commands.setMonitoredBuffs([]);
-            await commands.setBuffPriority([]);
             await setMonitoredPanelAttrs([]);
             await commands.setBuffCounterRules([]);
           }

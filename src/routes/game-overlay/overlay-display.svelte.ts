@@ -21,6 +21,7 @@ import {
   activeProfile,
   buffAliases,
   buffDisplayMode,
+  buffPriorityIds,
   expandedMonitoredBuffIds,
   enabledPanelAttrs,
   inlineBuffEntries,
@@ -228,9 +229,26 @@ export function getResourcePreciseValue(index: number): number {
   );
 }
 
+function getBuffPrioritySorter(priorityIds: number[]) {
+  if (priorityIds.length === 0) {
+    return (baseId: number) => [Number.MAX_SAFE_INTEGER, baseId] as const;
+  }
+
+  const priorityIndex = new Map(priorityIds.map((id, idx) => [id, idx]));
+  return (baseId: number) =>
+    [priorityIndex.get(baseId) ?? priorityIds.length, baseId] as const;
+}
+
+function getTextBuffBaseId(row: TextBuffDisplay): number {
+  const match = /^buff_(\d+)$/.exec(row.key);
+  const baseId = match?.[1];
+  return baseId ? Number.parseInt(baseId, 10) : Number.MAX_SAFE_INTEGER;
+}
+
 export function updateDisplay() {
   const now = Date.now();
   const explicitSelectedBuffIds = monitoredBuffIds();
+  const priorityIds = buffPriorityIds();
   const buffDefinitionsMap = buffDefinitions();
   const skippedInlineBuffIds = inlineBuffIds();
   const currentBuffAliases = buffAliases();
@@ -336,6 +354,18 @@ export function updateDisplay() {
       }
     }
   }
+
+  const sortBuffPriority = getBuffPrioritySorter(priorityIds);
+  nextIconBuffs.sort((left, right) => {
+    const [leftPriority, leftBaseId] = sortBuffPriority(left.baseId);
+    const [rightPriority, rightBaseId] = sortBuffPriority(right.baseId);
+    return leftPriority - rightPriority || leftBaseId - rightBaseId;
+  });
+  nextTextBuffs.sort((left, right) => {
+    const [leftPriority, leftBaseId] = sortBuffPriority(getTextBuffBaseId(left));
+    const [rightPriority, rightBaseId] = sortBuffPriority(getTextBuffBaseId(right));
+    return leftPriority - rightPriority || leftBaseId - rightBaseId;
+  });
 
   const nextDisplayMap = new Map<number, SkillDisplay>();
   for (const [skillId, cd] of overlayRuntime.cdMap) {

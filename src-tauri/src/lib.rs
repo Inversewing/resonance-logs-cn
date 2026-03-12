@@ -58,7 +58,6 @@ pub fn run() {
             live::commands::set_monitored_buffs,
             live::commands::set_monitored_panel_attrs,
             live::commands::set_monitor_all_buff,
-            live::commands::set_buff_priority,
             live::commands::set_buff_counter_rules,
             database::commands::get_recent_encounters,
             database::commands::get_unique_scene_names,

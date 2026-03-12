@@ -14,6 +14,7 @@ import {
 } from "$lib/config/buff-name-table";
 import { DEFAULT_OVERLAY_VISIBILITY } from "./overlay-constants";
 import {
+  ensureBuffGroups,
   ensureCustomPanelStyle,
   ensureInlineBuffEntries,
   ensureTextBuffPanelStyle,
@@ -51,6 +52,17 @@ const _monitoredBuffCategories = $derived.by<BuffCategoryKey[]>(() =>
 const _expandedMonitoredBuffIds = $derived.by(() =>
   expandBuffSelection(_monitoredBuffIds, _monitoredBuffCategories),
 );
+const _buffPriorityIds = $derived.by(() => {
+  if (!_activeProfile) return [];
+  return Array.from(
+    new Set([
+      ...(_activeProfile.buffPriorityIds ?? []),
+      ...ensureBuffGroups(_activeProfile).flatMap(
+        (group) => group.priorityBuffIds ?? [],
+      ),
+    ]),
+  );
+});
 const _buffDisplayMode = $derived.by(
   () => _activeProfile?.buffDisplayMode ?? "individual",
 );
@@ -126,6 +138,10 @@ export function monitoredBuffCategories() {
 
 export function expandedMonitoredBuffIds() {
   return _expandedMonitoredBuffIds;
+}
+
+export function buffPriorityIds() {
+  return _buffPriorityIds;
 }
 
 export function buffDisplayMode() {

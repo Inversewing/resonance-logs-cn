@@ -183,15 +183,6 @@ fn decode_state_event(op: packets::opcodes::Pkt, data: Bytes) -> Option<StateEve
                 }
             }
         }
-        packets::opcodes::Pkt::NotifyReviveUser => {
-            match blueprotobuf::NotifyReviveUser::decode(data) {
-                Ok(v) => Some(StateEvent::NotifyReviveUser(v)),
-                Err(e) => {
-                    warn!("Error decoding NotifyReviveUser.. ignoring: {e}");
-                    None
-                }
-            }
-        }
         packets::opcodes::Pkt::BuffInfoSync => match blueprotobuf::BuffInfoSync::decode(data) {
             Ok(v) => {
                 // Dump the packet as JSON for debugging

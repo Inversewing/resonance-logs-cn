@@ -177,17 +177,6 @@ pub fn set_monitor_all_buff(
 
 #[tauri::command]
 #[specta::specta]
-pub fn set_buff_priority(
-    priority_buff_ids: Vec<i32>,
-    state_manager: tauri::State<'_, AppStateManager>,
-) -> Result<(), String> {
-    info!("[monitor-buff] set buff priority: {:?}", priority_buff_ids);
-    state_manager.set_buff_priority(priority_buff_ids)?;
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
 pub fn set_buff_counter_rules(
     rules: Vec<crate::live::counter_tracker::CounterRule>,
     state_manager: tauri::State<'_, AppStateManager>,

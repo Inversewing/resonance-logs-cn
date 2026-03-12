@@ -38,8 +38,6 @@ pub enum StateEvent {
     SyncToMeDeltaInfo(blueprotobuf::SyncToMeDeltaInfo),
     /// A sync near delta info event.
     SyncNearDeltaInfo(blueprotobuf::SyncNearDeltaInfo),
-    /// A notify revive user event.
-    NotifyReviveUser(blueprotobuf::NotifyReviveUser),
     /// A reset encounter event. Contains whether this was a manual reset by the user.
     #[allow(dead_code)]
     ResetEncounter {
@@ -96,8 +94,6 @@ impl EntityMonitor {
 
     fn clear_runtime_state(&mut self) {
         self.buff_monitor.active_buffs.clear();
-        self.buff_monitor.ordered_buff_uuids.clear();
-        self.buff_monitor.buff_order_dirty = false;
         self.skill_cd_monitor.skill_cd_map.clear();
         self.fight_res_state = None;
         self.counter_tracker.reset_counts();
@@ -113,7 +109,6 @@ pub enum LiveControlCommand {
     SetMonitoredPanelAttrs(Vec<i32>),
     SetMonitoredSkills(Vec<i32>),
     SetMonitorAllBuff(bool),
-    SetBuffPriority(Vec<i32>),
     SetBuffCounterRules(Vec<CounterRule>),
 }
 
@@ -374,9 +369,6 @@ impl AppStateManager {
                 // Note: Player names are automatically stored in the database via UpsertEntity tasks
                 // No need to maintain a separate cache anymore
             }
-            StateEvent::NotifyReviveUser(data) => {
-                self.process_notify_revive_user(state, data);
-            }
             StateEvent::ResetEncounter { is_manual } => {
                 state.pending_auto_reset = None;
                 self.reset_encounter(state, is_manual);
@@ -432,10 +424,6 @@ impl AppStateManager {
             }
             LiveControlCommand::SetMonitorAllBuff(monitor_all_buff) => {
                 state.local_monitor.buff_monitor.monitor_all_buff = monitor_all_buff;
-            }
-            LiveControlCommand::SetBuffPriority(priority_buff_ids) => {
-                state.local_monitor.buff_monitor.priority_buff_ids = priority_buff_ids;
-                state.local_monitor.buff_monitor.buff_order_dirty = true;
             }
             LiveControlCommand::SetBuffCounterRules(rules) => {
                 state.local_monitor.counter_tracker.set_rules(rules);
@@ -806,17 +794,6 @@ impl AppStateManager {
         state.pending_auto_reset = None;
     }
 
-    fn process_notify_revive_user(
-        &self,
-        state: &mut AppState,
-        notify: blueprotobuf::NotifyReviveUser,
-    ) {
-        use crate::live::opcodes_process::process_notify_revive_user;
-        if process_notify_revive_user(&mut state.encounter, notify).is_none() {
-            warn!("Error processing NotifyReviveUser.. ignoring.");
-        }
-    }
-
     fn apply_reset_reason(&self, state: &mut AppState, reason: EncounterResetReason) {
         let encounter_has_stats = state.encounter.total_dmg > 0
             || state
@@ -994,10 +971,6 @@ impl AppStateManager {
 
     pub fn set_monitor_all_buff(&self, monitor_all_buff: bool) -> Result<(), String> {
         self.send_control(LiveControlCommand::SetMonitorAllBuff(monitor_all_buff))
-    }
-
-    pub fn set_buff_priority(&self, priority_buff_ids: Vec<i32>) -> Result<(), String> {
-        self.send_control(LiveControlCommand::SetBuffPriority(priority_buff_ids))
     }
 
     pub fn set_buff_counter_rules(&self, rules: Vec<CounterRule>) -> Result<(), String> {

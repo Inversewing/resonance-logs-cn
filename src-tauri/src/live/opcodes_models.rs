@@ -23,16 +23,6 @@ pub struct Encounter {
     pub current_scene_id: Option<i32>,
     pub current_scene_name: Option<String>,
     pub current_dungeon_difficulty: Option<i32>,
-    // Pending player death events detected during packet processing. Each tuple is
-    // Pending player revive events detected during packet processing. Each tuple is
-    // (actor_uid, helper_uid_opt, skill_id_opt, timestamp_ms)
-    pub pending_player_revives: Vec<(i64, Option<i64>, Option<i32>, i64)>,
-    // Last recorded revive timestamp per actor (ms) to avoid immediate duplicates.
-    pub last_revive_ms: HashMap<i64, u128>,
-    // Last recorded death timestamp per actor (ms) used only for deduplicating
-    // DB death inserts. We no longer use death tracking for wipe detection; revives
-    // are tracked for UI purposes while death DB inserts are still written.
-    pub last_death_db_ms: HashMap<i64, u128>,
 }
 
 // Use an async-aware RwLock so readers don't block the tokio runtime threads.
@@ -444,10 +434,6 @@ impl Encounter {
             entity.taken = CombatStats::default();
             entity.skill_uid_to_taken_skill.clear();
         }
-        // Clear any pending player death tracking for a fresh encounter
-        self.pending_player_revives.clear();
-        self.last_revive_ms.clear();
-        self.last_death_db_ms.clear();
     }
 }
 

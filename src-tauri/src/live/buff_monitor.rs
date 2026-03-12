@@ -25,7 +25,6 @@ pub enum BuffChangeType {
 
 #[derive(Debug, Clone)]
 pub struct BuffChangeEvent {
-    pub buff_uuid: i32,
     pub base_id: i32,
     pub change_type: BuffChangeType,
 }
@@ -40,14 +39,8 @@ pub struct BuffProcessResult {
 pub struct BuffMonitor {
     /// Ordered list of monitored buff base IDs.
     pub monitored_buff_ids: Vec<i32>,
-    /// User configured buff priority order by base ID.
-    pub priority_buff_ids: Vec<i32>,
     /// Active buffs keyed by buff UUID.
     pub active_buffs: HashMap<i32, ActiveBuff>,
-    /// Cached ordered buff UUID list to avoid sorting every packet.
-    pub ordered_buff_uuids: Vec<i32>,
-    /// Whether ordered_buff_uuids needs recomputing.
-    pub buff_order_dirty: bool,
     /// Monitor all buffs.
     pub monitor_all_buff: bool,
 }
@@ -56,10 +49,7 @@ impl BuffMonitor {
     pub(crate) fn new() -> Self {
         Self {
             monitored_buff_ids: Vec::new(),
-            priority_buff_ids: Vec::new(),
             active_buffs: HashMap::new(),
-            ordered_buff_uuids: Vec::new(),
-            buff_order_dirty: true,
             monitor_all_buff: false,
         }
     }
@@ -116,9 +106,7 @@ impl BuffMonitor {
                                 source_config_id,
                             },
                         );
-                        self.buff_order_dirty = true;
                         changes.push(BuffChangeEvent {
-                            buff_uuid,
                             base_id,
                             change_type: BuffChangeType::Added,
                         });
@@ -137,7 +125,6 @@ impl BuffMonitor {
                                 entry.create_time = create_time;
                             }
                             changes.push(BuffChangeEvent {
-                                buff_uuid,
                                 base_id,
                                 change_type: BuffChangeType::Changed,
                             });
@@ -150,48 +137,19 @@ impl BuffMonitor {
                 let removed_buff = self.active_buffs.remove(&buff_uuid);
                 if let Some(removed_buff) = removed_buff {
                     changes.push(BuffChangeEvent {
-                        buff_uuid,
                         base_id: removed_buff.base_id,
                         change_type: BuffChangeType::Removed,
                     });
-                    self.buff_order_dirty = true;
                 }
             }
-        }
-
-        if self.buff_order_dirty {
-            let priority_index: HashMap<i32, usize> = self
-                .priority_buff_ids
-                .iter()
-                .enumerate()
-                .map(|(idx, &base_id)| (base_id, idx))
-                .collect();
-            self.ordered_buff_uuids.clear();
-            self.ordered_buff_uuids
-                .extend(self.active_buffs.keys().copied());
-            self.ordered_buff_uuids.sort_by_key(|uuid| {
-                let (base_id, create_time, buff_uuid) = self
-                    .active_buffs
-                    .get(uuid)
-                    .map(|buff| (buff.base_id, buff.create_time, buff.buff_uuid))
-                    .unwrap_or((i32::MAX, i64::MAX, i32::MAX));
-                (
-                    priority_index.get(&base_id).copied().unwrap_or(usize::MAX),
-                    base_id,
-                    create_time,
-                    buff_uuid,
-                )
-            });
-            self.buff_order_dirty = false;
         }
 
         let update_payload = if self.monitored_buff_ids.is_empty() && !self.monitor_all_buff {
             None
         } else {
             Some(
-                self.ordered_buff_uuids
-                    .iter()
-                    .filter_map(|uuid| self.active_buffs.get(uuid))
+                self.active_buffs
+                    .values()
                     .filter(|buff| {
                         self.monitor_all_buff || self.monitored_buff_ids.contains(&buff.base_id)
                     })
