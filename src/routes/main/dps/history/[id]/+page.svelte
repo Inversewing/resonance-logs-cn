@@ -331,7 +331,27 @@
     ungrouped: SkillDisplayRow[];
   }): FlatSkillRow[] {
     const rows: FlatSkillRow[] = [];
-    for (const group of grouping.groups) {
+    const topLevel = [
+      ...grouping.groups.map(
+        (group): { kind: "group"; row: RecountGroup } => ({ kind: "group", row: group }),
+      ),
+      ...grouping.ungrouped.map(
+        (skill): { kind: "skill"; row: SkillDisplayRow } => ({ kind: "skill", row: skill }),
+      ),
+    ].sort((a, b) => b.row.totalDmg - a.row.totalDmg);
+
+    for (const item of topLevel) {
+      if (item.kind === "skill") {
+        rows.push({
+          kind: "skill",
+          key: `u-${item.row.skillId}`,
+          depth: 0,
+          row: item.row,
+        });
+        continue;
+      }
+
+      const group = item.row;
       rows.push({
         kind: "group",
         key: `g-${group.recountId}`,
@@ -347,14 +367,6 @@
           row: skill,
         });
       }
-    }
-    for (const skill of grouping.ungrouped) {
-      rows.push({
-        kind: "skill",
-        key: `u-${skill.skillId}`,
-        depth: 0,
-        row: skill,
-      });
     }
     return rows;
   }

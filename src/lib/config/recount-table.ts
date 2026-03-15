@@ -47,14 +47,12 @@ type RecountEntry = {
   DamageId: number[];
 };
 
-const OTHER_RECOUNT_ID = 294;
 const recountTable = recountTableRaw as Record<string, RecountEntry>;
 const damageAttrIdNames = damageAttrIdNamesRaw as Record<string, string>;
 
 const DAMAGE_TO_RECOUNT = new Map<number, { recountId: number; recountName: string }>();
 
 for (const entry of Object.values(recountTable)) {
-  if (entry.Id === OTHER_RECOUNT_ID) continue;
   for (const did of entry.DamageId) {
     DAMAGE_TO_RECOUNT.set(did, { recountId: entry.Id, recountName: entry.RecountName });
   }

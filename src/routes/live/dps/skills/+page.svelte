@@ -23,6 +23,10 @@
     expanded?: boolean;
   };
 
+  type TopLevelSkillItem =
+    | { kind: "group"; row: RecountGroup }
+    | { kind: "skill"; row: SkillDisplayRow };
+
   const playerUid = Number(page.url.searchParams.get("playerUid") ?? "-1");
   const expandedGroups = $state(new Set<number>());
 
@@ -88,11 +92,32 @@
 
   let flatRows = $derived.by(() => {
     const rows: FlatSkillRow[] = [];
-    const sortedGroups = sortRows(groupedSkills.groups);
-    const sortedUngrouped = sortRows(groupedSkills.ungrouped);
+    const topLevel = [
+      ...groupedSkills.groups.map(
+        (group): TopLevelSkillItem => ({ kind: "group", row: group }),
+      ),
+      ...groupedSkills.ungrouped.map(
+        (skill): TopLevelSkillItem => ({ kind: "skill", row: skill }),
+      ),
+    ].sort((a, b) => {
+      const aVal = numericValue(a.row[sortKey]);
+      const bVal = numericValue(b.row[sortKey]);
+      return sortDesc ? bVal - aVal : aVal - bVal;
+    });
 
-    for (const group of sortedGroups) {
-      const groupRow: FlatSkillRow = {
+    for (const item of topLevel) {
+      if (item.kind === "skill") {
+        rows.push({
+          ...item.row,
+          key: `ungrouped-${item.row.skillId}`,
+          isGroup: false,
+          depth: 0,
+        });
+        continue;
+      }
+
+      const group = item.row;
+      rows.push({
         key: `group-${group.recountId}`,
         skillId: group.recountId,
         name: group.recountName,
@@ -130,11 +155,12 @@
         groupId: group.recountId,
         expandable: true,
         expanded: expandedGroups.has(group.recountId),
-      };
-      rows.push(groupRow);
+      });
 
-      if (expandedGroups.has(group.recountId)) {
-        const children = sortRows(group.skills).map(
+      if (!expandedGroups.has(group.recountId)) continue;
+
+      rows.push(
+        ...sortRows(group.skills).map(
           (skill): FlatSkillRow => ({
             ...skill,
             key: `skill-${group.recountId}-${skill.skillId}`,
@@ -142,21 +168,9 @@
             depth: 1,
             groupId: group.recountId,
           }),
-        );
-        rows.push(...children);
-      }
+        ),
+      );
     }
-
-    rows.push(
-      ...sortedUngrouped.map(
-        (skill): FlatSkillRow => ({
-          ...skill,
-          key: `ungrouped-${skill.skillId}`,
-          isGroup: false,
-          depth: 0,
-        }),
-      ),
-    );
 
     return rows;
   });
