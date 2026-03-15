@@ -405,20 +405,20 @@ fn flush_outbound_events(app_handle: &AppHandle, state: &mut AppState) {
                     BuffUpdatePayload { buffs },
                 );
             }
-            OutboundEvent::BossBuffUpdate { boss_uid, buffs } => {
+            OutboundEvent::BossBuffUpdate(boss_buffs) => {
                 safe_emit_to(
                     app_handle,
                     crate::WINDOW_MONSTER_OVERLAY_LABEL,
                     "boss-buff-update",
-                    BossBuffUpdatePayload { boss_uid, buffs },
+                    BossBuffUpdatePayload { boss_buffs },
                 );
             }
-            OutboundEvent::HateListUpdate { boss_uid, entries } => {
+            OutboundEvent::HateListUpdate(hate_lists) => {
                 safe_emit_to(
                     app_handle,
                     crate::WINDOW_MONSTER_OVERLAY_LABEL,
                     "hate-list-update",
-                    HateListUpdatePayload { boss_uid, entries },
+                    HateListUpdatePayload { hate_lists },
                 );
             }
             OutboundEvent::EntityNameMap { names } => {

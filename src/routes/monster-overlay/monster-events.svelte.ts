@@ -5,6 +5,7 @@ import {
   onEntityNames,
   onHateListUpdate,
   type BuffUpdateState,
+  type HateEntry,
 } from "$lib/api";
 import {
   onGlobalPointerMove,
@@ -49,21 +50,16 @@ export function initMonsterOverlay() {
     void setMonsterEditMode(!monsterRuntime.isEditing);
   });
   const unlistenBossBuff = onBossBuffUpdate((event) => {
-    const next = new Map(monsterRuntime.bossBuffMap);
-    const mappedBuffs = mapBossBuffs(event.payload.buffs);
-    if (mappedBuffs.size > 0) {
-      next.set(event.payload.bossUid, mappedBuffs);
-    } else {
-      next.delete(event.payload.bossUid);
+    const next = new Map<number, Map<number, BuffUpdateState>>();
+    for (const [uid, buffs] of Object.entries(event.payload.bossBuffs)) {
+      next.set(Number(uid), mapBossBuffs(buffs));
     }
     monsterRuntime.bossBuffMap = next;
   });
   const unlistenHateList = onHateListUpdate((event) => {
-    const next = new Map(monsterRuntime.bossHateMap);
-    if (event.payload.entries.length > 0) {
-      next.set(event.payload.bossUid, event.payload.entries);
-    } else {
-      next.delete(event.payload.bossUid);
+    const next = new Map<number, HateEntry[]>();
+    for (const [uid, entries] of Object.entries(event.payload.hateLists)) {
+      next.set(Number(uid), entries);
     }
     monsterRuntime.bossHateMap = next;
   });

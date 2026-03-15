@@ -806,16 +806,11 @@ impl AppStateManager {
                 if is_boss {
                     let local_player_uid = state.encounter.local_player_uid;
                     let monitor = state.boss_buff_monitors.monitor_for(target_uid);
-                    let buff_process_result = monitor.process_buff_effect_bytes(
+                    monitor.process_buff_effect_bytes(
                         &raw_bytes,
                         &mut state.server_clock_offset,
                         local_player_uid,
                     );
-                    if let Some(payload) = buff_process_result.update_payload {
-                        state
-                            .event_manager
-                            .emit_boss_buff_update(target_uid, payload);
-                    }
                 }
             }
         }
@@ -1064,7 +1059,14 @@ impl AppStateManager {
 
         state.event_manager.emit_live_data(payload);
 
-        let mut new_names = HashMap::new();
+        let boss_count = state
+            .encounter
+            .entity_uid_to_entity
+            .values()
+            .filter(|entity| entity.is_boss())
+            .count();
+        let mut all_hate_lists = HashMap::with_capacity(boss_count);
+        let mut new_names = HashMap::with_capacity(boss_count);
 
         for (&boss_uid, entity) in &state.encounter.entity_uid_to_entity {
             if !entity.is_boss() {
@@ -1097,11 +1099,20 @@ impl AppStateManager {
                 }
             }
 
-            state.event_manager.emit_hate_list_update(boss_uid, entries);
+            if !entries.is_empty() {
+                all_hate_lists.insert(boss_uid, entries);
+            }
         }
+
+        state.event_manager.emit_hate_list_update(all_hate_lists);
 
         if !new_names.is_empty() {
             state.event_manager.emit_entity_name_map(new_names);
         }
+
+        let boss_buff_snapshot = state
+            .boss_buff_monitors
+            .build_all_buff_snapshots(state.server_clock_offset);
+        state.event_manager.emit_boss_buff_update(boss_buff_snapshot);
     }
 }

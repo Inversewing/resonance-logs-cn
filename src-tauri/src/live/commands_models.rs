@@ -251,8 +251,7 @@ pub struct BuffUpdatePayload {
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct BossBuffUpdatePayload {
-    pub boss_uid: i64,
-    pub buffs: Vec<BuffUpdateState>,
+    pub boss_buffs: HashMap<i64, Vec<BuffUpdateState>>,
 }
 
 #[derive(specta::Type, serde::Serialize, serde::Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -265,8 +264,7 @@ pub struct HateEntry {
 #[derive(serde::Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HateListUpdatePayload {
-    pub boss_uid: i64,
-    pub entries: Vec<HateEntry>,
+    pub hate_lists: HashMap<i64, Vec<HateEntry>>,
 }
 
 #[derive(serde::Serialize, Debug, Clone)]

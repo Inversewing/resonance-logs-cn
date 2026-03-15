@@ -983,9 +983,11 @@ fn process_monster_attrs(
         }
 
         if attr_id == attr_type::ATTR_HATE_LIST {
+            let hate_list = attr_store.hate_list_mut(target_uid);
             if let Some(raw) = raw_bytes_opt {
-                let hate_list = attr_store.hate_list_mut(target_uid);
                 let _ = parse_hate_list_into(raw, hate_list);
+            } else {
+                hate_list.clear();
             }
             continue;
         }

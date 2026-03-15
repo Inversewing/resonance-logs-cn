@@ -109,8 +109,7 @@ export type BuffUpdatePayload = {
 };
 
 export type BossBuffUpdatePayload = {
-  bossUid: number;
-  buffs: BuffUpdateState[];
+  bossBuffs: Record<string, BuffUpdateState[]>;
 };
 
 export type HateEntry = {
@@ -119,8 +118,7 @@ export type HateEntry = {
 };
 
 export type HateListUpdatePayload = {
-  bossUid: number;
-  entries: HateEntry[];
+  hateLists: Record<string, HateEntry[]>;
 };
 
 export type EntityNameMapPayload = {

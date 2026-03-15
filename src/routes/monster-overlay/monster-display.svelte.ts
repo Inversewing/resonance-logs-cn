@@ -85,14 +85,45 @@ function buildHateRows(entries: HateEntry[]): TextBuffDisplay[] {
     }
     return left.uid - right.uid;
   });
-  const topHate = sortedEntries[0]?.hateVal ?? 0;
+
+  const normalizedHateValues = sortedEntries.map((entry) => Math.max(entry.hateVal, 0));
+  const totalHate = normalizedHateValues.reduce((sum, hateVal) => sum + hateVal, 0);
+
+  let displayPercents = new Array<number>(sortedEntries.length).fill(0);
+  if (totalHate > 0) {
+    const percentParts = normalizedHateValues.map((hateVal, index) => {
+      const exactPercent = (hateVal / totalHate) * 100;
+      const basePercent = Math.floor(exactPercent);
+      return {
+        index,
+        basePercent,
+        remainder: exactPercent - basePercent,
+      };
+    });
+
+    let remainingPercent = 100 - percentParts.reduce(
+      (sum, part) => sum + part.basePercent,
+      0,
+    );
+
+    percentParts
+      .sort((left, right) =>
+        right.remainder - left.remainder || left.index - right.index)
+      .forEach((part) => {
+        if (remainingPercent <= 0) return;
+        part.basePercent += 1;
+        remainingPercent -= 1;
+      });
+
+    displayPercents = percentParts
+      .sort((left, right) => left.index - right.index)
+      .map((part) => part.basePercent);
+  }
 
   return sortedEntries.map((entry, index) => ({
     key: `hate_${entry.uid}`,
     label: `${index + 1}. ${monsterRuntime.nameCache.get(entry.uid) ?? `UID ${entry.uid}`}`,
-    valueText: topHate > 0
-      ? `${Math.round((entry.hateVal / topHate) * 100)}%`
-      : "0%",
+    valueText: `${displayPercents[index] ?? 0}%`,
     progressPercent: 0,
     showProgress: false,
   }));

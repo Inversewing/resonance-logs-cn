@@ -145,33 +145,37 @@ impl BuffMonitor {
             }
         }
 
-        let update_payload = if self.monitored_buff_ids.is_empty()
-            && self.self_applied_buff_ids.is_empty()
-            && !self.monitor_all_buff
-        {
-            None
-        } else {
-            Some(
-                self.active_buffs
-                    .values()
-                    .filter(|buff| {
-                        self.monitor_all_buff
-                            || self.monitored_buff_ids.contains(&buff.base_id)
-                            || self.self_applied_buff_ids.contains(&buff.base_id)
-                    })
-                    .map(|buff| BuffUpdateState {
-                        base_id: buff.base_id,
-                        layer: buff.layer,
-                        duration_ms: buff.duration,
-                        create_time_ms: buff.create_time.saturating_add(*server_clock_offset),
-                    })
-                    .collect(),
-            )
-        };
+        let update_payload = self.build_update_payload(*server_clock_offset);
         BuffProcessResult {
             update_payload,
             changes,
         }
+    }
+
+    fn build_update_payload(&self, server_clock_offset: i64) -> Option<Vec<BuffUpdateState>> {
+        if self.monitored_buff_ids.is_empty()
+            && self.self_applied_buff_ids.is_empty()
+            && !self.monitor_all_buff
+        {
+            return None;
+        }
+
+        Some(
+            self.active_buffs
+                .values()
+                .filter(|buff| {
+                    self.monitor_all_buff
+                        || self.monitored_buff_ids.contains(&buff.base_id)
+                        || self.self_applied_buff_ids.contains(&buff.base_id)
+                })
+                .map(|buff| BuffUpdateState {
+                    base_id: buff.base_id,
+                    layer: buff.layer,
+                    duration_ms: buff.duration,
+                    create_time_ms: buff.create_time.saturating_add(server_clock_offset),
+                })
+                .collect(),
+        )
     }
 }
 
@@ -211,5 +215,23 @@ impl BossBuffMonitors {
             monitor.self_applied_buff_ids = self_applied_buff_ids;
             monitor
         })
+    }
+
+    pub(crate) fn build_all_buff_snapshots(
+        &self,
+        server_clock_offset: i64,
+    ) -> HashMap<i64, Vec<BuffUpdateState>> {
+        let mut snapshots = HashMap::with_capacity(self.monitors.len());
+
+        for (&boss_uid, monitor) in &self.monitors {
+            let Some(buffs) = monitor.build_update_payload(server_clock_offset) else {
+                continue;
+            };
+            if !buffs.is_empty() {
+                snapshots.insert(boss_uid, buffs);
+            }
+        }
+
+        snapshots
     }
 }

@@ -102,14 +102,8 @@ pub enum OutboundEvent {
     SceneChange(String),
     LiveData(LiveDataPayload),
     BuffUpdate(Vec<BuffUpdateState>),
-    BossBuffUpdate {
-        boss_uid: i64,
-        buffs: Vec<BuffUpdateState>,
-    },
-    HateListUpdate {
-        boss_uid: i64,
-        entries: Vec<HateEntry>,
-    },
+    BossBuffUpdate(HashMap<i64, Vec<BuffUpdateState>>),
+    HateListUpdate(HashMap<i64, Vec<HateEntry>>),
     EntityNameMap {
         names: HashMap<i64, String>,
     },
@@ -184,14 +178,14 @@ impl EventManager {
         self.outbound_events.push(OutboundEvent::BuffUpdate(buffs));
     }
 
-    pub fn emit_boss_buff_update(&mut self, boss_uid: i64, buffs: Vec<BuffUpdateState>) {
+    pub fn emit_boss_buff_update(&mut self, boss_buffs: HashMap<i64, Vec<BuffUpdateState>>) {
         self.outbound_events
-            .push(OutboundEvent::BossBuffUpdate { boss_uid, buffs });
+            .push(OutboundEvent::BossBuffUpdate(boss_buffs));
     }
 
-    pub fn emit_hate_list_update(&mut self, boss_uid: i64, entries: Vec<HateEntry>) {
+    pub fn emit_hate_list_update(&mut self, hate_lists: HashMap<i64, Vec<HateEntry>>) {
         self.outbound_events
-            .push(OutboundEvent::HateListUpdate { boss_uid, entries });
+            .push(OutboundEvent::HateListUpdate(hate_lists));
     }
 
     pub fn emit_entity_name_map(&mut self, names: HashMap<i64, String>) {
