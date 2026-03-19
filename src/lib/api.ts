@@ -293,6 +293,7 @@ export type ModuleSolution = {
 export type OptimizeLatestPayload = {
   targetAttributes: number[];
   excludeAttributes: number[];
+  minTotalValue?: number;
   minAttrRequirements?: Record<number, number>;
   useGpu?: boolean;
   combinationSize?: 4 | 5;

@@ -18,6 +18,7 @@ export interface ModuleCalcState {
 
   targetAttributes: number[];
   excludeAttributes: number[];
+  minTotalValue: number;
   minRequirements: MinReq[];
 
   loading: boolean;
@@ -40,6 +41,7 @@ export const MODULE_CALC = $state<ModuleCalcState>({
 
   targetAttributes: [],
   excludeAttributes: [],
+  minTotalValue: 12,
   minRequirements: [{ attrId: null, value: null }],
 
   loading: false,

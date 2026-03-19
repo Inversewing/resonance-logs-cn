@@ -87,6 +87,7 @@
       const payload = {
         targetAttributes: [...MODULE_CALC.targetAttributes],
         excludeAttributes: [...MODULE_CALC.excludeAttributes],
+        minTotalValue: MODULE_CALC.minTotalValue,
         minAttrRequirements: minMap,
         useGpu: MODULE_CALC.useGpu,
         combinationSize: MODULE_CALC.combinationSize,
@@ -175,7 +176,11 @@
   {/if}
 
   <div class="grid gap-4 md:grid-cols-2">
-    <DataStatus moduleCount={MODULE_CALC.moduleCount} />
+    <DataStatus
+      moduleCount={MODULE_CALC.moduleCount}
+      modules={MODULE_CALC.modules}
+      minTotalValue={MODULE_CALC.minTotalValue}
+    />
     <CalcSettings
       bind:useGpu={MODULE_CALC.useGpu}
       bind:gpuSupport={MODULE_CALC.gpuSupport}
@@ -187,6 +192,7 @@
     attributeOptions={ATTR_OPTIONS}
     bind:targetAttributes={MODULE_CALC.targetAttributes}
     bind:excludeAttributes={MODULE_CALC.excludeAttributes}
+    bind:minTotalValue={MODULE_CALC.minTotalValue}
     bind:minRequirements={MODULE_CALC.minRequirements}
   />
 

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
+  import { Slider } from "$lib/components/ui/slider";
 
   type AttrOption = { id: number; label: string };
   type MinReq = { attrId: number | null; value: number | null };
@@ -9,11 +10,13 @@
     attributeOptions = [],
     targetAttributes = $bindable<number[]>([]),
     excludeAttributes = $bindable<number[]>([]),
+    minTotalValue = $bindable(12),
     minRequirements = $bindable<MinReq[]>([{ attrId: null, value: null }]),
   }: {
     attributeOptions: AttrOption[];
     targetAttributes: number[];
     excludeAttributes: number[];
+    minTotalValue: number;
     minRequirements: MinReq[];
   } = $props();
 
@@ -50,6 +53,21 @@
 
 <div class="rounded-lg border border-border/60 bg-card/40 p-4 space-y-4">
   <div class="text-base font-semibold text-foreground">筛选设置</div>
+
+  <div class="space-y-2">
+    <div class="text-sm text-foreground">排除总值低于多少的模组:</div>
+    <div class="flex items-center gap-4">
+      <Slider
+        type="single"
+        bind:value={minTotalValue}
+        min={0}
+        max={30}
+        step={1}
+        class="max-w-[70%]"
+      />
+      <div class="min-w-12 text-sm text-foreground">{minTotalValue}级</div>
+    </div>
+  </div>
 
   <div class="space-y-2">
     <div class="text-sm text-muted-foreground">目标属性, 选中后只会计算携带该属性的模组(模组数超过1000时可利用该设置先进行筛选)</div>

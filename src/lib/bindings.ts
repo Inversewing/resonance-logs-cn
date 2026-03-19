@@ -410,9 +410,9 @@ async getLatestModules() : Promise<Result<ModuleInfo[], string>> {
     else return { status: "error", error: e  as any };
 }
 },
-async optimizeLatestModules(targetAttributes: number[], excludeAttributes: number[], minAttrRequirements: Partial<{ [key in number]: number }> | null, useGpu: boolean | null, combinationSize: number | null) : Promise<Result<ModuleSolution[], string>> {
+async optimizeLatestModules(targetAttributes: number[], excludeAttributes: number[], minTotalValue: number | null, minAttrRequirements: Partial<{ [key in number]: number }> | null, useGpu: boolean | null, combinationSize: number | null) : Promise<Result<ModuleSolution[], string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("optimize_latest_modules", { targetAttributes, excludeAttributes, minAttrRequirements, useGpu, combinationSize }) };
+    return { status: "ok", data: await TAURI_INVOKE("optimize_latest_modules", { targetAttributes, excludeAttributes, minTotalValue, minAttrRequirements, useGpu, combinationSize }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };

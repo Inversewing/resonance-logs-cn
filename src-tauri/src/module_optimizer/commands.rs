@@ -110,14 +110,16 @@ pub async fn optimize_latest_modules(
     app: AppHandle,
     target_attributes: Vec<i32>,
     exclude_attributes: Vec<i32>,
+    min_total_value: Option<i32>,
     min_attr_requirements: Option<HashMap<i32, i32>>,
     use_gpu: Option<bool>,
     combination_size: Option<i32>,
 ) -> Result<Vec<ModuleSolution>, String> {
     log::info!(
-        "收到优化请求: target={:?}, exclude={:?}, min_req={:?}, gpu={:?}",
+        "收到优化请求: target={:?}, exclude={:?}, min_total={:?}, min_req={:?}, gpu={:?}",
         target_attributes,
         exclude_attributes,
+        min_total_value,
         min_attr_requirements,
         use_gpu
     );
@@ -130,6 +132,20 @@ pub async fn optimize_latest_modules(
     let vdata = load_latest_char_serialize()?;
     let all_modules = parse_modules_from_vdata(&vdata);
     let original_count = all_modules.len();
+    let all_modules: Vec<ModuleInfo> = all_modules
+        .into_iter()
+        .filter(|m| m.parts.len() > 1)
+        .collect();
+    let after_part_count = all_modules.len();
+    let all_modules = if let Some(min_val) = min_total_value {
+        all_modules
+            .into_iter()
+            .filter(|m| m.parts.iter().map(|p| p.value).sum::<i32>() >= min_val)
+            .collect()
+    } else {
+        all_modules
+    };
+    let after_total_value_count = all_modules.len();
 
     let modules = if !target_attributes.is_empty() {
         let target_set: std::collections::HashSet<i32> =
@@ -143,9 +159,12 @@ pub async fn optimize_latest_modules(
     };
 
     log::info!(
-        "模组预筛: {} -> {} (target_attrs: {:?})",
+        "模组预筛: 原始={} 单属性过滤后={} 总值过滤后={} 目标属性过滤后={} (min_total={:?}, target_attrs={:?})",
         original_count,
+        after_part_count,
+        after_total_value_count,
         modules.len(),
+        min_total_value,
         target_attributes
     );
 
