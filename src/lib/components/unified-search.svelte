@@ -31,7 +31,7 @@
 	let showTypeDropdown = $state(false);
 
 	const searchTypeDisplay = $derived(
-		searchType === 'boss' ? '首领' : searchType === 'player' ? '玩家' : '战斗'
+		searchType === 'boss' ? '首领' : searchType === 'player' ? '玩家' : '场景'
 	);
 
 	const computedPlaceholder = $derived(
@@ -39,7 +39,7 @@
 			(searchType === 'boss'
 				? '搜索首领...'
 				: searchType === 'encounter'
-				? '搜索战斗...'
+				? '搜索场景...'
 				: '搜索玩家...')
 	);
 
@@ -196,7 +196,7 @@
 					onclick={() => selectSearchType('encounter')}
 					class="w-full px-3 py-2 text-left text-sm text-muted-foreground hover:bg-muted/40 focus:bg-muted/50 focus:outline-none transition-colors {searchType === 'encounter' ? 'bg-muted/60 text-foreground' : ''}"
 				>
-					战斗
+					场景
 				</button>
 			</div>
 		{/if}

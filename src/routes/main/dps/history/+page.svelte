@@ -167,7 +167,8 @@
 			const filterPayload: EncounterFiltersDto = {
 				bossNames: selectedBosses.length > 0 ? selectedBosses : null,
 				playerName: null,
-				encounterNames: null,
+				encounterNames:
+					selectedEncounters.length > 0 ? selectedEncounters : null,
 				playerNames:
 					selectedPlayerNames.length > 0 ? selectedPlayerNames : null,
 				dateFromMs: null,
@@ -177,6 +178,7 @@
 
 			const hasFilters =
 				filterPayload.bossNames !== null ||
+				filterPayload.encounterNames !== null ||
 				filterPayload.playerNames !== null ||
 				filterPayload.isFavorite !== null;
 
@@ -237,6 +239,13 @@
 
 	function removeBossFilter(bossName: string) {
 		selectedBosses = selectedBosses.filter((name) => name !== bossName);
+		loadEncounters(0);
+	}
+
+	function removeEncounterFilter(encounterName: string) {
+		selectedEncounters = selectedEncounters.filter(
+			(name) => name !== encounterName,
+		);
 		loadEncounters(0);
 	}
 
@@ -453,7 +462,7 @@
 						<span class="text-muted-foreground/70">场景：</span>
 						{encounter}
 						<button
-							onclick={() => removeBossFilter(encounter)}
+							onclick={() => removeEncounterFilter(encounter)}
 							class="text-muted-foreground/70 hover:text-destructive transition-colors"
 							aria-label={`移除 ${encounter} 筛选`}
 						>
