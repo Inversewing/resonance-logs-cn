@@ -5,10 +5,12 @@ import {
 import { type BuffCategoryKey } from "$lib/config/buff-name-table";
 import { activeProfile, updateActiveProfile } from "./overlay-profile.svelte.js";
 import {
-  iconDisplayBuffs,
   overlayRuntime,
-  skillDurationDisplays,
 } from "./overlay-runtime.svelte.js";
+import {
+  iconDisplayBuffs,
+  skillDurationDisplays,
+} from "./overlay-display.svelte.js";
 import type { DragTarget, IconBuffDisplay, ResizeTarget } from "./overlay-types";
 import {
   ensureBuffGroups,

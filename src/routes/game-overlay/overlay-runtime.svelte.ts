@@ -6,14 +6,9 @@ import type {
 } from "$lib/api";
 import type { BuffDefinition } from "$lib/config/buff-name-table";
 import type {
-  CustomPanelDisplayRow,
   DragState,
-  IconBuffDisplay,
   ResizeState,
-  SkillDisplay,
-  SkillDurationDisplay,
   SkillDurationState,
-  TextBuffDisplay,
 } from "./overlay-types";
 
 export const overlayRuntime = $state({
@@ -21,21 +16,13 @@ export const overlayRuntime = $state({
   cleanup: null as (() => void) | null,
   isInitialized: false,
   isMounted: false,
-  rafId: null as number | null,
   cdMap: new Map<number, SkillCdState>(),
-  displayMap: new Map<number, SkillDisplay>(),
   skillDurationMap: new Map<number, SkillDurationState>(),
-  skillDurationDisplays: [] as SkillDurationDisplay[],
   fightResValues: [] as number[],
   buffMap: new Map<number, BuffUpdateState>(),
-  activeBuffIds: new Set<number>(),
-  buffDurationPercents: new Map<number, number>(),
   counterMap: new Map<number, CounterUpdateState>(),
   panelAttrMap: new Map<number, number>(),
   buffDefinitions: new Map<number, BuffDefinition>(),
-  iconDisplayBuffs: [] as IconBuffDisplay[],
-  textBuffs: [] as TextBuffDisplay[],
-  customPanelRowsByGroup: new Map<string, CustomPanelDisplayRow[]>(),
   isEditing: false,
   dragState: null as DragState | null,
   resizeState: null as ResizeState | null,
@@ -45,16 +32,8 @@ export function cdMap() {
   return overlayRuntime.cdMap;
 }
 
-export function displayMap() {
-  return overlayRuntime.displayMap;
-}
-
 export function skillDurationMap() {
   return overlayRuntime.skillDurationMap;
-}
-
-export function skillDurationDisplays() {
-  return overlayRuntime.skillDurationDisplays;
 }
 
 export function fightResValues() {
@@ -63,14 +42,6 @@ export function fightResValues() {
 
 export function buffMap() {
   return overlayRuntime.buffMap;
-}
-
-export function activeBuffIds() {
-  return overlayRuntime.activeBuffIds;
-}
-
-export function buffDurationPercents() {
-  return overlayRuntime.buffDurationPercents;
 }
 
 export function counterMap() {
@@ -83,14 +54,6 @@ export function panelAttrMap() {
 
 export function buffDefinitions() {
   return overlayRuntime.buffDefinitions;
-}
-
-export function iconDisplayBuffs() {
-  return overlayRuntime.iconDisplayBuffs;
-}
-
-export function textBuffs() {
-  return overlayRuntime.textBuffs;
 }
 
 export function isEditing() {

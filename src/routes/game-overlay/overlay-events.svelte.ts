@@ -37,7 +37,7 @@ import {
   setEditMode,
   setOverlayWindow,
 } from "./overlay-layout.svelte.js";
-import { updateDisplay } from "./overlay-display.svelte.js";
+import { initOverlayClock } from "./overlay-clock.svelte.js";
 
 export function initOverlay() {
   if (overlayRuntime.cleanup) return overlayRuntime.cleanup;
@@ -122,7 +122,7 @@ export function initOverlay() {
 
   window.addEventListener("pointermove", onGlobalPointerMove);
   window.addEventListener("pointerup", onGlobalPointerUp);
-  overlayRuntime.rafId = requestAnimationFrame(updateDisplay);
+  const cleanupClock = initOverlayClock();
 
   overlayRuntime.cleanup = () => {
     overlayRuntime.isMounted = false;
@@ -137,10 +137,7 @@ export function initOverlay() {
     unlistenPanelAttr.then((fn) => fn());
     window.removeEventListener("pointermove", onGlobalPointerMove);
     window.removeEventListener("pointerup", onGlobalPointerUp);
-    if (overlayRuntime.rafId) {
-      cancelAnimationFrame(overlayRuntime.rafId);
-      overlayRuntime.rafId = null;
-    }
+    cleanupClock();
     setOverlayWindow(null);
     overlayRuntime.cleanup = null;
   };

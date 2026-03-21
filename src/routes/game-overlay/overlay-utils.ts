@@ -176,12 +176,12 @@ export function formatTimerText(remainingMs: number): string {
   if (!Number.isFinite(remainingMs)) return "∞";
   if (remainingMs <= 0) return "--";
   if (remainingMs <= 60_000) {
-    return `${(remainingMs / 1000).toFixed(1)}s`;
+    return `${formatTenthsDown(remainingMs / 1000)}s`;
   }
   if (remainingMs <= 3_600_000) {
-    return `${(remainingMs / 60_000).toFixed(1)}m`;
+    return `${formatTenthsDown(remainingMs / 60_000)}m`;
   }
-  return `${(remainingMs / 3_600_000).toFixed(1)}h`;
+  return `${formatTenthsDown(remainingMs / 3_600_000)}h`;
 }
 
 export function getBuffRemainPercent(
@@ -485,7 +485,7 @@ export function computeDisplay(
       return {
         isActive: chargesOnCd > 0,
         percent: Math.min(1, timeToNextCharge / chargeDuration),
-        text: (timeToNextCharge / 1000).toFixed(1),
+        text: formatTenthsDown(timeToNextCharge / 1000),
         chargesText: `${chargesAvailable}/${maxCharges}`,
       };
     }
@@ -497,7 +497,7 @@ export function computeDisplay(
   return {
     isActive: remaining > 0,
     percent: remaining > 0 ? Math.min(1, remaining / duration) : 0,
-    text: remaining > 0 ? (remaining / 1000).toFixed(1) : "",
+    text: remaining > 0 ? formatTenthsDown(remaining / 1000) : "",
   };
 }
 
@@ -533,4 +533,8 @@ function clampRounded(value: number, min: number, max: number): number {
 
 function clampDecimal(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function formatTenthsDown(value: number): string {
+  return (Math.floor(Math.max(0, value) * 10) / 10).toFixed(1);
 }
