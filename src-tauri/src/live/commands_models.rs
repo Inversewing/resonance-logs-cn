@@ -1,5 +1,6 @@
 use crate::live::opcodes_models::SkillTargetStats;
 use crate::live::opcodes_models::{CombatStats, Skill};
+use crate::live::training_dummy::TrainingDummyPhase;
 use std::collections::HashMap;
 
 /// Represents the health of a boss.
@@ -38,6 +39,8 @@ pub struct HeaderInfo {
     pub scene_id: Option<i32>,
     /// The name of the scene where the encounter took place.
     pub scene_name: Option<String>,
+    /// Current training dummy runtime state for the live window.
+    pub training_dummy: TrainingDummyState,
 }
 
 /// Represents a raw
@@ -54,8 +57,15 @@ pub struct LiveDataPayload {
     pub scene_id: Option<i32>,
     pub scene_name: Option<String>,
     pub is_paused: bool,
+    pub training_dummy: TrainingDummyState,
     pub bosses: Vec<BossHealth>,
     pub entities: Vec<RawEntityData>,
+}
+
+#[derive(specta::Type, serde::Serialize, serde::Deserialize, Debug, Default, Clone, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct TrainingDummyState {
+    pub phase: TrainingDummyPhase,
 }
 
 #[derive(specta::Type, serde::Serialize, serde::Deserialize, Debug, Default, Clone)]

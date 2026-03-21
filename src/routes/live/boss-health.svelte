@@ -17,6 +17,9 @@
     bosses: [],
     sceneId: null,
     sceneName: null,
+    trainingDummy: {
+      phase: "idle",
+    },
   });
 
 

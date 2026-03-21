@@ -146,5 +146,6 @@ export function computeHeaderInfo(data: LiveDataPayload): HeaderInfo {
     bosses: data.bosses,
     sceneId: data.sceneId,
     sceneName: data.sceneName,
+    trainingDummy: data.trainingDummy,
   };
 }

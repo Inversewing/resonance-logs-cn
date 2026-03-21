@@ -1,7 +1,7 @@
 use crate::database::{EncounterMetadata, PlayerNameEntry, now_ms, save_encounter};
 use crate::live::buff_monitor::{BossBuffMonitors, BuffMonitor};
 use crate::live::commands_models::{
-    CounterUpdateState, FightResourceState, PanelAttrState, SkillCdState,
+    CounterUpdateState, FightResourceState, PanelAttrState, SkillCdState, TrainingDummyState,
 };
 use crate::live::counter_tracker::{BuffCounterTracker, CounterRule};
 use crate::live::dungeon_log::{BattleStateMachine, EncounterResetReason};
@@ -10,7 +10,11 @@ use crate::live::event_manager::EventManager;
 use crate::live::monster_registry;
 use crate::live::opcodes_models::{AttrType, Encounter, Entity};
 use crate::live::skill_cd_monitor::SkillCdMonitor;
+use crate::live::training_dummy::{
+    TrainingDummyMonsterId, TrainingDummyRuntime, inspect_aoi_delta,
+};
 use blueprotobuf_lib::blueprotobuf;
+use blueprotobuf_lib::blueprotobuf::AoiSyncDelta;
 use blueprotobuf_lib::blueprotobuf::EEntityType;
 use log::{info, warn};
 use std::collections::{HashMap, HashSet};
@@ -72,6 +76,8 @@ pub struct AppState {
     pub battle_state: BattleStateMachine,
     /// If set, automatic reset can execute only after this timestamp.
     pub pending_auto_reset: Option<Instant>,
+    /// Runtime state for training dummy mode.
+    pub training_dummy: TrainingDummyRuntime,
     /// UIDs whose display names have already been pushed to the monster overlay.
     pub sent_overlay_uids: HashSet<i64>,
 }
@@ -110,6 +116,10 @@ impl EntityMonitor {
 pub enum LiveControlCommand {
     StateEvent(StateEvent),
     TogglePauseEncounter,
+    StartTrainingDummy {
+        monster_id: TrainingDummyMonsterId,
+    },
+    StopTrainingDummy,
     SetEventUpdateRateMs(u64),
     SetMonitoredBuffs(Vec<i32>),
     SetBossMonitoredBuffs {
@@ -139,6 +149,7 @@ impl AppState {
             server_clock_offset: 0,
             battle_state: BattleStateMachine::default(),
             pending_auto_reset: None,
+            training_dummy: TrainingDummyRuntime::default(),
             sent_overlay_uids: HashSet::new(),
         }
     }
@@ -222,6 +233,21 @@ fn collect_player_names(encounter: &Encounter) -> Vec<PlayerNameEntry> {
     player_names.sort_by(|a, b| a.name.cmp(&b.name));
     player_names.dedup_by(|a, b| a.name == b.name);
     player_names
+}
+
+fn encounter_has_stats(encounter: &Encounter) -> bool {
+    encounter.total_dmg > 0
+        || encounter.total_heal > 0
+        || encounter
+            .entity_uid_to_entity
+            .values()
+            .any(|e| e.damage.hits > 0 || e.healing.hits > 0 || e.taken.hits > 0)
+}
+
+fn build_training_dummy_state(runtime: &TrainingDummyRuntime) -> TrainingDummyState {
+    TrainingDummyState {
+        phase: runtime.phase,
+    }
 }
 
 fn build_encounter_metadata(
@@ -423,6 +449,17 @@ impl AppStateManager {
                 let paused = state.encounter.is_encounter_paused;
                 state.set_encounter_paused(!paused);
             }
+            LiveControlCommand::StartTrainingDummy { monster_id } => {
+                state.training_dummy.arm(monster_id);
+            }
+            LiveControlCommand::StopTrainingDummy => {
+                if state.training_dummy.locked_target_uid.is_some()
+                    && encounter_has_stats(&state.encounter)
+                {
+                    self.reset_encounter(state, false);
+                }
+                state.training_dummy.clear();
+            }
             LiveControlCommand::SetEventUpdateRateMs(rate_ms) => {
                 state.event_update_rate_ms = rate_ms;
             }
@@ -480,6 +517,7 @@ impl AppStateManager {
     fn on_server_change(&self, state: &mut AppState) {
         use crate::live::opcodes_process::on_server_change;
         state.pending_auto_reset = None;
+        state.training_dummy.clear();
 
         persist_and_save_encounter(state, false, "server_change");
         on_server_change(&mut state.encounter);
@@ -508,6 +546,7 @@ impl AppStateManager {
             info!("Initial scene detected");
             state.initial_scene_change_handled = true;
         }
+        state.training_dummy.clear();
 
         if let Some(scene_id) = parsed.scene_id {
             let scene_name = scene_names::lookup(scene_id);
@@ -564,6 +603,7 @@ impl AppStateManager {
         state.sent_overlay_uids.clear();
         state.battle_state = BattleStateMachine::default();
         state.pending_auto_reset = None;
+        state.training_dummy.clear();
 
         if process_sync_container_data(
             &mut state.encounter,
@@ -623,13 +663,7 @@ impl AppStateManager {
             }
         }
 
-        let encounter_has_stats = state.encounter.total_dmg > 0
-            || state.encounter.total_heal > 0
-            || state
-                .encounter
-                .entity_uid_to_entity
-                .values()
-                .any(|e| e.damage.hits > 0 || e.healing.hits > 0 || e.taken.hits > 0);
+        let encounter_has_stats = encounter_has_stats(&state.encounter);
 
         if let Some(reason) = process_sync_dungeon_data(
             &mut state.battle_state,
@@ -652,13 +686,7 @@ impl AppStateManager {
     ) {
         use crate::live::opcodes_process::process_sync_dungeon_dirty_data;
 
-        let encounter_has_stats = state.encounter.total_dmg > 0
-            || state.encounter.total_heal > 0
-            || state
-                .encounter
-                .entity_uid_to_entity
-                .values()
-                .any(|e| e.damage.hits > 0 || e.healing.hits > 0 || e.taken.hits > 0);
+        let encounter_has_stats = encounter_has_stats(&state.encounter);
 
         if let Some(reason) = process_sync_dungeon_dirty_data(
             &mut state.battle_state,
@@ -691,11 +719,31 @@ impl AppStateManager {
             self.try_deferred_reset(state, has_damage, "SyncToMeDeltaInfo");
         }
 
+        let combat_target_filter = sync_to_me_delta_info
+            .delta_info
+            .as_ref()
+            .and_then(|delta| delta.base_delta.as_ref())
+            .and_then(|base_delta| {
+                let local_player_uid = sync_to_me_delta_info
+                    .delta_info
+                    .as_ref()
+                    .and_then(|delta| delta.uuid)
+                    .map(|uuid| uuid >> 16)
+                    .unwrap_or(state.encounter.local_player_uid);
+                self.prepare_training_dummy_for_delta(
+                    state,
+                    base_delta,
+                    local_player_uid,
+                    "SyncToMeDeltaInfo",
+                )
+            });
+
         let result = process_sync_to_me_delta_info(
             &mut state.encounter,
             &mut state.attr_store,
             sync_to_me_delta_info,
             &state.local_monitor.monitored_panel_attr_ids,
+            combat_target_filter,
         );
 
         if state.local_monitor.uid != state.encounter.local_player_uid {
@@ -783,11 +831,20 @@ impl AppStateManager {
         for mut aoi_sync_delta in sync_near_delta_info.delta_infos {
             let target_uid = aoi_sync_delta.uuid.map(|uuid| uuid >> 16);
             let buff_bytes = aoi_sync_delta.buff_effect.take();
+            let combat_target_filter = self.prepare_training_dummy_for_delta(
+                state,
+                &aoi_sync_delta,
+                state.encounter.local_player_uid,
+                "SyncNearDeltaInfo",
+            );
 
             // Missing fields are normal, no need to log
-            if let Some(events) =
-                process_aoi_sync_delta(&mut state.encounter, &mut state.attr_store, aoi_sync_delta)
-            {
+            if let Some(events) = process_aoi_sync_delta(
+                &mut state.encounter,
+                &mut state.attr_store,
+                aoi_sync_delta,
+                combat_target_filter,
+            ) {
                 for event in &events {
                     counter_dirty |= state.local_monitor.counter_tracker.on_damage_event(
                         event.skill_key,
@@ -859,12 +916,7 @@ impl AppStateManager {
     }
 
     fn apply_reset_reason(&self, state: &mut AppState, reason: EncounterResetReason) {
-        let encounter_has_stats = state.encounter.total_dmg > 0
-            || state
-                .encounter
-                .entity_uid_to_entity
-                .values()
-                .any(|e| e.damage.hits > 0 || e.healing.hits > 0 || e.taken.hits > 0);
+        let encounter_has_stats = encounter_has_stats(&state.encounter);
         info!(
             target: "app::live",
             "Applying encounter reset due to rule: {:?} (has_stats={}, total_dmg={}, total_heal={})",
@@ -938,6 +990,7 @@ impl AppStateManager {
                 bosses: vec![],
                 scene_id: state.encounter.current_scene_id,
                 scene_name: state.encounter.current_scene_name.clone(),
+                training_dummy: build_training_dummy_state(&state.training_dummy),
             };
             state
                 .event_manager
@@ -945,6 +998,9 @@ impl AppStateManager {
         }
         if is_manual {
             state.battle_state = BattleStateMachine::default();
+            if state.training_dummy.has_selection() {
+                state.training_dummy.rearm_selected();
+            }
         }
     }
 
@@ -1019,6 +1075,14 @@ impl AppStateManager {
         self.send_control(LiveControlCommand::SetEventUpdateRateMs(rate_ms))
     }
 
+    pub fn start_training_dummy(&self, monster_id: TrainingDummyMonsterId) -> Result<(), String> {
+        self.send_control(LiveControlCommand::StartTrainingDummy { monster_id })
+    }
+
+    pub fn stop_training_dummy(&self) -> Result<(), String> {
+        self.send_control(LiveControlCommand::StopTrainingDummy)
+    }
+
     pub fn set_monitored_buffs(&self, buff_base_ids: Vec<i32>) -> Result<(), String> {
         self.send_control(LiveControlCommand::SetMonitoredBuffs(buff_base_ids))
     }
@@ -1061,6 +1125,7 @@ impl AppStateManager {
         let payload = crate::live::event_manager::generate_live_data_payload(
             &state.encounter,
             &state.attr_store,
+            build_training_dummy_state(&state.training_dummy),
         );
 
         state.event_manager.emit_live_data(payload);
@@ -1137,5 +1202,47 @@ impl AppStateManager {
         state
             .event_manager
             .emit_boss_buff_update(boss_buff_snapshot);
+    }
+
+    fn prepare_training_dummy_for_delta(
+        &self,
+        state: &mut AppState,
+        delta: &AoiSyncDelta,
+        local_player_uid: i64,
+        source: &str,
+    ) -> Option<i64> {
+        if !state.training_dummy.has_selection() {
+            return None;
+        }
+
+        state.training_dummy.maybe_enter_pending_rollover();
+        let matched = inspect_aoi_delta(&state.encounter, delta, local_player_uid);
+
+        if let Some(matched) = matched {
+            if state.training_dummy.should_lock_on_match(matched)
+                || state.training_dummy.should_rollover_on_match(matched)
+            {
+                if encounter_has_stats(&state.encounter) {
+                    info!(
+                        target: "app::live",
+                        "training_dummy_reset_before_lock source={} target_uid={} monster_id={}",
+                        source,
+                        matched.target_uid,
+                        matched.monster_id.id()
+                    );
+                    self.reset_encounter(state, false);
+                }
+                state.training_dummy.lock_target(matched);
+                info!(
+                    target: "app::live",
+                    "training_dummy_locked source={} target_uid={} monster_id={}",
+                    source,
+                    matched.target_uid,
+                    matched.monster_id.id()
+                );
+            }
+        }
+
+        state.training_dummy.combat_target_filter()
     }
 }

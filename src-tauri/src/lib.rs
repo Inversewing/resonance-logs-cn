@@ -55,6 +55,8 @@ pub fn run() {
             live::commands::disable_blur,
             live::commands::reset_encounter,
             live::commands::toggle_pause_encounter,
+            live::commands::start_training_dummy,
+            live::commands::stop_training_dummy,
             live::commands::set_event_update_rate_ms,
             live::commands::set_monitored_skills,
             live::commands::set_monitored_buffs,

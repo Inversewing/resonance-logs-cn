@@ -1,5 +1,6 @@
 use crate::WINDOW_LIVE_LABEL;
 use crate::live::state::{AppStateManager, StateEvent};
+use crate::live::training_dummy::TrainingDummyMonsterId;
 use log::info;
 use tauri::Manager;
 use window_vibrancy::{apply_blur, clear_blur};
@@ -97,6 +98,24 @@ pub fn toggle_pause_encounter(
     state_manager: tauri::State<'_, AppStateManager>,
 ) -> Result<(), String> {
     state_manager.send_toggle_pause_encounter()?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn start_training_dummy(
+    monster_id: i32,
+    state_manager: tauri::State<'_, AppStateManager>,
+) -> Result<(), String> {
+    let monster_id = TrainingDummyMonsterId::try_from(monster_id).map_err(|err| err.to_string())?;
+    state_manager.start_training_dummy(monster_id)?;
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub fn stop_training_dummy(state_manager: tauri::State<'_, AppStateManager>) -> Result<(), String> {
+    state_manager.stop_training_dummy()?;
     Ok(())
 }
 

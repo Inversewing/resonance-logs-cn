@@ -1,9 +1,10 @@
 <script lang="ts">
   type SettingsSelectOption =
     | string
+    | number
     | {
         label: string;
-        value: string;
+        value: string | number;
       };
 
   let {
@@ -14,7 +15,7 @@
   }: {
     label: string;
     description?: string | undefined;
-    selected: string;
+    selected: string | number;
     values: SettingsSelectOption[];
   } = $props();
 </script>
@@ -31,6 +32,7 @@
     <div class="flex flex-wrap gap-2">
       {#each values as value (value)}
         {@const option = typeof value === "string"
+          || typeof value === "number"
           ? { label: value, value }
           : value}
         <button

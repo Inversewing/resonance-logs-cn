@@ -30,6 +30,13 @@ export type HeaderInfo = {
   bosses: BossHealth[];
   sceneId: number | null;
   sceneName: string | null;
+  trainingDummy: TrainingDummyState;
+};
+
+export type TrainingDummyPhase = "idle" | "armed" | "running" | "pendingRollover";
+
+export type TrainingDummyState = {
+  phase: TrainingDummyPhase;
 };
 
 export type PlayerRow = {
@@ -183,6 +190,7 @@ export type LiveDataPayload = {
   sceneId: number | null;
   sceneName: string | null;
   isPaused: boolean;
+  trainingDummy: TrainingDummyState;
   bosses: BossHealth[];
   entities: RawEntityData[];
 };
@@ -250,6 +258,9 @@ export const onPanelAttrUpdate = (
 
 export const resetEncounter = (): Promise<Result<null, string>> => commands.resetEncounter();
 export const togglePauseEncounter = (): Promise<Result<null, string>> => commands.togglePauseEncounter();
+export const startTrainingDummy = (monsterId: number): Promise<Result<null, string>> =>
+  commands.startTrainingDummy(monsterId);
+export const stopTrainingDummy = (): Promise<Result<null, string>> => commands.stopTrainingDummy();
 export const enableBlur = (): Promise<void> => commands.enableBlur();
 export const disableBlur = (): Promise<void> => commands.disableBlur();
 export const getEncounterEntitiesRaw = (

@@ -14,3 +14,4 @@ pub mod opcodes_process;
 pub mod scene_names;
 pub mod skill_cd_monitor;
 pub mod state;
+pub mod training_dummy;

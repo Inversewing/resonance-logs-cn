@@ -13,12 +13,20 @@
   import MinusIcon from "virtual:icons/lucide/minus";
   import SettingsIcon from "virtual:icons/lucide/settings";
   import RefreshCwIcon from "virtual:icons/lucide/refresh-cw";
+  import CrosshairIcon from "virtual:icons/lucide/crosshair";
 
   import { onMount } from "svelte";
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import { resetEncounter, togglePauseEncounter, type HeaderInfo } from "$lib/api";
+  import {
+    resetEncounter,
+    startTrainingDummy,
+    stopTrainingDummy,
+    togglePauseEncounter,
+    type HeaderInfo,
+    type TrainingDummyState,
+  } from "$lib/api";
   import { tooltip } from "$lib/utils.svelte";
   import AbbreviatedNumber from "$lib/components/abbreviated-number.svelte";
   import { emitTo } from "@tauri-apps/api/event";
@@ -26,35 +34,29 @@
   import { getLiveData } from "$lib/stores/live-meter-store.svelte";
 
   // Get header settings
-  let h = $derived(SETTINGS.live.headerCustomization.state);
+  const h = $derived(SETTINGS.live.headerCustomization.state);
+  const trainingDummySettings = $derived(SETTINGS.trainingDummy.state);
 
-  let liveData = $derived(getLiveData());
+  const liveData = $derived(getLiveData());
 
-  let fightStartTimestampMs = $state(0);
+  const emptyTrainingDummy: TrainingDummyState = {
+    phase: "idle",
+  };
+
   let clientElapsedMs = $state(0);
   let animationFrameId: number | null = null;
+  let trainingDummyBusy = $state(false);
 
   // Client-side timer loop for smooth local elapsed display.
   function updateClientTimer() {
-    if (fightStartTimestampMs > 0 && !isEncounterPaused) {
-      clientElapsedMs = Date.now() - fightStartTimestampMs;
+    if (headerInfo.fightStartTimestampMs > 0 && !isEncounterPaused) {
+      clientElapsedMs = Date.now() - headerInfo.fightStartTimestampMs;
     }
     animationFrameId = requestAnimationFrame(updateClientTimer);
   }
 
   function resetTimer() {
-    fightStartTimestampMs = 0;
     clientElapsedMs = 0;
-    headerInfo = {
-      totalDps: 0,
-      totalDmg: 0,
-      elapsedMs: 0,
-      activeCombatTimeMs: 0,
-      fightStartTimestampMs: 0,
-      bosses: [],
-      sceneId: null,
-      sceneName: null,
-    };
   }
 
   onMount(() => {
@@ -74,7 +76,7 @@
     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }
 
-  let headerInfo: HeaderInfo = $state({
+  const emptyHeaderInfo: HeaderInfo = {
     totalDps: 0,
     totalDmg: 0,
     elapsedMs: 0,
@@ -83,18 +85,20 @@
     bosses: [],
     sceneId: null,
     sceneName: null,
-  });
-  let isEncounterPaused = $state(false);
-
-  $effect(() => {
+    trainingDummy: emptyTrainingDummy,
+  };
+  const trainingDummyState = $derived(liveData?.trainingDummy ?? emptyTrainingDummy);
+  const isEncounterPaused = $derived(!!liveData?.isPaused);
+  const headerInfo = $derived.by((): HeaderInfo => {
     const data = liveData;
     if (!data || data.fightStartTimestampMs <= 0) {
-      resetTimer();
-      isEncounterPaused = false;
-      return;
+      return {
+        ...emptyHeaderInfo,
+        trainingDummy: trainingDummyState,
+      };
     }
 
-    headerInfo = {
+    return {
       totalDps:
         data.elapsedMs > 0 ? Number(data.totalDmg) / (Number(data.elapsedMs) / 1000) : 0,
       totalDmg: Number(data.totalDmg),
@@ -104,20 +108,22 @@
       bosses: data.bosses,
       sceneId: data.sceneId,
       sceneName: data.sceneName,
+      trainingDummy: data.trainingDummy,
     };
-
-    isEncounterPaused = !!data.isPaused;
-
-    if (fightStartTimestampMs !== Number(data.fightStartTimestampMs)) {
-      fightStartTimestampMs = Number(data.fightStartTimestampMs);
-      clientElapsedMs = Date.now() - fightStartTimestampMs;
-    }
   });
 
-  let displayHeaderInfo = $derived(headerInfo);
-  let displayElapsedMs = $derived(clientElapsedMs);
-  let displaySceneName = $derived(headerInfo.sceneName);
-  let displayBosses = $derived(headerInfo.bosses);
+  $effect(() => {
+    const nextFightStartTimestampMs = headerInfo.fightStartTimestampMs;
+    clientElapsedMs = nextFightStartTimestampMs > 0
+      ? Date.now() - nextFightStartTimestampMs
+      : 0;
+  });
+
+  const displayHeaderInfo = $derived(headerInfo);
+  const displayElapsedMs = $derived(clientElapsedMs);
+  const displaySceneName = $derived(headerInfo.sceneName);
+  const displayBosses = $derived(headerInfo.bosses);
+  const isTrainingDummyActive = $derived(trainingDummyState.phase !== "idle");
 
   const appWindow = getCurrentWebviewWindow();
 
@@ -133,17 +139,44 @@
 
   function handleResetEncounter() {
     resetTimer();
-    isEncounterPaused = false;
     void resetEncounter();
   }
 
+  function formatTrainingDummyLabel(state: TrainingDummyState) {
+    switch (state.phase) {
+      case "armed":
+        return "打桩待命";
+      case "running":
+        return "打桩中";
+      case "pendingRollover":
+        return "待切段";
+      default:
+        return "";
+    }
+  }
+
+  async function toggleTrainingDummyMode() {
+    if (trainingDummyBusy) return;
+    trainingDummyBusy = true;
+    try {
+      if (isTrainingDummyActive) {
+        await stopTrainingDummy();
+      } else {
+        await startTrainingDummy(trainingDummySettings.defaultMonsterId);
+      }
+    } finally {
+      trainingDummyBusy = false;
+    }
+  }
+
   // Check if we have any row 1 left content
-  let hasRow1Left = $derived(
-    h.showTimer || h.showSceneName,
+  const hasRow1Left = $derived(
+    h.showTimer || h.showSceneName || isTrainingDummyActive,
   );
 
   // Check if we have any row 1 right content (buttons)
-  let hasRow1Right = $derived(
+  const hasRow1Right = $derived(
+    trainingDummySettings.showHeaderControl ||
     h.showResetButton ||
       h.showPauseButton ||
       h.showSettingsButton ||
@@ -151,15 +184,15 @@
   );
 
   // Check if we have any row 2 left content
-  let hasRow2Left = $derived(
+  const hasRow2Left = $derived(
     h.showTotalDamage || h.showTotalDps || h.showBossHealth,
   );
 
   // Check if we have any row 2 content at all
-  let hasRow2 = $derived(hasRow2Left || h.showNavigationTabs);
+  const hasRow2 = $derived(hasRow2Left || h.showNavigationTabs);
 
   // Check if we have any row 1 content at all
-  let hasRow1 = $derived(hasRow1Left || hasRow1Right);
+  const hasRow1 = $derived(hasRow1Left || hasRow1Right);
 </script>
 
 {#if hasRow1 || hasRow2}
@@ -212,6 +245,24 @@
           >
         {/if}
 
+        {#if isTrainingDummyActive}
+          <div
+            class="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-foreground shrink-0"
+            {@attach tooltip(() => formatTrainingDummyLabel(trainingDummyState))}
+          >
+            <CrosshairIcon
+              class="text-muted-foreground shrink-0"
+              style="width: {h.sceneNameFontSize}px; height: {h.sceneNameFontSize}px"
+            />
+            <span
+              class="font-medium leading-none"
+              style="font-size: {h.sceneNameFontSize}px"
+            >
+              {formatTrainingDummyLabel(trainingDummyState)}
+            </span>
+          </div>
+        {/if}
+
       </div>
     {/if}
 
@@ -220,6 +271,27 @@
       <div
         class="col-start-2 row-start-1 flex items-center justify-self-end gap-2 shrink-0"
       >
+        {#if trainingDummySettings.showHeaderControl}
+          <button
+            class="{isTrainingDummyActive
+              ? 'bg-muted text-foreground border-border shadow-sm'
+              : 'text-muted-foreground border-transparent'} hover:text-foreground hover:bg-popover/60 rounded-lg border transition-all duration-200 disabled:opacity-60"
+            style="padding: {h.pauseButtonPadding}px"
+            aria-pressed={isTrainingDummyActive}
+            aria-label={isTrainingDummyActive
+              ? "关闭打桩模式"
+              : "开启打桩模式"}
+            disabled={trainingDummyBusy}
+            onclick={toggleTrainingDummyMode}
+            {@attach tooltip(() =>
+              isTrainingDummyActive ? "关闭打桩模式" : "开启打桩模式")}
+          >
+            <CrosshairIcon
+              style="width: {h.pauseButtonSize}px; height: {h.pauseButtonSize}px"
+            />
+          </button>
+        {/if}
+
         {#if h.showResetButton}
           <button
             class="text-muted-foreground hover:text-foreground hover:bg-popover/60 rounded-lg transition-all duration-200"
@@ -239,10 +311,7 @@
               ? 'text-[oklch(0.65_0.1_145)] bg-[oklch(0.9_0.02_145)]/30'
               : 'text-muted-foreground'} hover:text-foreground hover:bg-popover/60 rounded-lg transition-all duration-200"
             style="padding: {h.pauseButtonPadding}px"
-            onclick={() => {
-              togglePauseEncounter();
-              isEncounterPaused = !isEncounterPaused;
-            }}
+            onclick={() => void togglePauseEncounter()}
           >
             {#if isEncounterPaused}
               <PlayIcon

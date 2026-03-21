@@ -91,7 +91,7 @@
         clearMeterData();
         notificationToast?.showToast(
           "notice",
-          "Server change detected, resetting log",
+          "战斗记录已重置",
         );
       });
 

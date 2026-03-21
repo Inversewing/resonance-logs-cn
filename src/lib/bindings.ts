@@ -63,6 +63,22 @@ async togglePauseEncounter() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async startTrainingDummy(monsterId: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("start_training_dummy", { monsterId }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async stopTrainingDummy() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("stop_training_dummy") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 /**
  * Sets the event update rate in milliseconds.
  * 

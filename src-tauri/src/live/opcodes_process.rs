@@ -346,6 +346,7 @@ pub fn process_sync_to_me_delta_info(
     attr_store: &mut EntityAttrStore,
     sync_to_me_delta_info: blueprotobuf::SyncToMeDeltaInfo,
     monitored_panel_attr_ids: &[i32],
+    combat_target_filter: Option<i64>,
 ) -> SyncToMeDeltaResult {
     use crate::live::opcodes_models::attr_type::ATTR_FIGHT_RESOURCES;
 
@@ -395,7 +396,9 @@ pub fn process_sync_to_me_delta_info(
                 let _ = attr_store.set_temp_attr(id, value);
             }
         }
-        if let Some(events) = process_aoi_sync_delta(encounter, attr_store, base_delta) {
+        if let Some(events) =
+            process_aoi_sync_delta(encounter, attr_store, base_delta, combat_target_filter)
+        {
             result.local_damage_events = events;
         }
     }
@@ -515,9 +518,14 @@ pub fn process_aoi_sync_delta(
     encounter: &mut Encounter,
     attr_store: &mut EntityAttrStore,
     aoi_sync_delta: blueprotobuf::AoiSyncDelta,
+    combat_target_filter: Option<i64>,
 ) -> Option<Vec<LocalDamageEvent>> {
     let target_uuid = aoi_sync_delta.uuid?; // UUID =/= uid (have to >> 16)
     let target_uid = target_uuid >> 16;
+    let allow_combat = match combat_target_filter {
+        Some(locked_target_uid) => locked_target_uid == target_uid,
+        None => true,
+    };
 
     // Process attributes
     let target_entity_type = EEntityType::from(target_uuid);
@@ -561,6 +569,7 @@ pub fn process_aoi_sync_delta(
         .as_millis();
     let mut local_damage_events = Vec::new();
     let mut had_player_damage = false;
+    let mut had_allowed_combat = false;
     // Process Damage
     for sync_damage_info in skill_effect.damages {
         let non_lucky_dmg = sync_damage_info.value;
@@ -633,7 +642,16 @@ pub fn process_aoi_sync_delta(
             const CRIT_BIT: i32 = 0b00_00_00_01;
             let is_crit_local = (flag & CRIT_BIT) != 0;
 
-            if is_heal {
+            if !allow_combat {
+                (
+                    is_crit_local,
+                    is_lucky_local,
+                    attacker_entity.entity_type,
+                    is_heal,
+                )
+            } else if is_heal {
+                had_allowed_combat = true;
+
                 let skill = attacker_entity
                     .skill_uid_to_heal_skill
                     .entry(skill_key)
@@ -680,6 +698,7 @@ pub fn process_aoi_sync_delta(
                     true,
                 )
             } else {
+                had_allowed_combat = true;
                 let skill = attacker_entity
                     .skill_uid_to_dmg_skill
                     .entry(skill_key)
@@ -765,12 +784,12 @@ pub fn process_aoi_sync_delta(
             }
         };
 
-        if !was_heal_event && attacker_entity_type_copy == EEntityType::EntChar {
+        if allow_combat && !was_heal_event && attacker_entity_type_copy == EEntityType::EntChar {
             had_player_damage = true;
         }
 
         // Track damage taken when a non-player attacks the defender.
-        if !was_heal_event {
+        if allow_combat && !was_heal_event {
             let hp_loss = sync_damage_info.hp_lessen_value.unwrap_or(0).max(0) as u128;
             let shield_loss = sync_damage_info.shield_lessen_value.unwrap_or(0).max(0) as u128;
             let effective_value = if hp_loss + shield_loss > 0 {
@@ -816,11 +835,13 @@ pub fn process_aoi_sync_delta(
         update_active_damage_time(encounter, timestamp_ms);
     }
 
-    if encounter.time_fight_start_ms == Default::default() {
-        encounter.time_fight_start_ms = timestamp_ms;
-    }
+    if had_allowed_combat {
+        if encounter.time_fight_start_ms == Default::default() {
+            encounter.time_fight_start_ms = timestamp_ms;
+        }
 
-    encounter.time_last_combat_packet_ms = timestamp_ms;
+        encounter.time_last_combat_packet_ms = timestamp_ms;
+    }
     Some(local_damage_events)
 }
 

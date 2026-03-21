@@ -1,7 +1,7 @@
 use crate::live::commands_models::{
     BossHealth, BuffUpdateState, CounterUpdateState, FightResourceState, HateEntry, HeaderInfo,
-    LiveDataPayload, PanelAttrState, RawEntityData, SkillCdState, to_raw_combat_stats,
-    to_raw_skill_stats,
+    LiveDataPayload, PanelAttrState, RawEntityData, SkillCdState, TrainingDummyState,
+    to_raw_combat_stats, to_raw_skill_stats,
 };
 use crate::live::entity_attr_store::EntityAttrStore;
 use crate::live::opcodes_models::{AttrType, Encounter, class};
@@ -247,6 +247,7 @@ pub type EventManagerMutex = RwLock<EventManager>;
 pub fn generate_live_data_payload(
     encounter: &Encounter,
     attr_store: &EntityAttrStore,
+    training_dummy: TrainingDummyState,
 ) -> LiveDataPayload {
     let elapsed_ms = encounter
         .time_last_combat_packet_ms
@@ -366,6 +367,7 @@ pub fn generate_live_data_payload(
         scene_id: encounter.current_scene_id,
         scene_name: encounter.current_scene_name.clone(),
         is_paused: encounter.is_encounter_paused,
+        training_dummy,
         bosses,
         entities,
     }
