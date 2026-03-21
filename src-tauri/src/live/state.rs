@@ -7,6 +7,7 @@ use crate::live::counter_tracker::{BuffCounterTracker, CounterRule};
 use crate::live::dungeon_log::{BattleStateMachine, EncounterResetReason};
 use crate::live::entity_attr_store::EntityAttrStore;
 use crate::live::event_manager::EventManager;
+use crate::live::monster_registry;
 use crate::live::opcodes_models::{AttrType, Encounter, Entity};
 use crate::live::skill_cd_monitor::SkillCdMonitor;
 use blueprotobuf_lib::blueprotobuf;
@@ -198,7 +199,7 @@ fn resolve_entity_display_name(uid: i64, entity: &Entity, attr_store: &EntityAtt
     if !entity.name.is_empty() {
         return entity.name.clone();
     }
-    format!("Boss {uid}")
+    format!("目标 {uid}")
 }
 
 fn collect_player_names(encounter: &Encounter) -> Vec<PlayerNameEntry> {
@@ -797,13 +798,18 @@ impl AppStateManager {
             }
 
             if let (Some(target_uid), Some(raw_bytes)) = (target_uid, buff_bytes) {
-                let is_boss = state
+                let should_monitor_monster_buffs = state
                     .encounter
                     .entity_uid_to_entity
                     .get(&target_uid)
-                    .map(|entity| entity.is_boss())
+                    .map(|entity| {
+                        entity.is_boss()
+                            || entity
+                                .monster_type_id
+                                .is_some_and(monster_registry::is_extra_buff_monitored_monster)
+                    })
                     .unwrap_or(false);
-                if is_boss {
+                if should_monitor_monster_buffs {
                     let local_player_uid = state.encounter.local_player_uid;
                     let monitor = state.boss_buff_monitors.monitor_for(target_uid);
                     monitor.process_buff_effect_bytes(
@@ -1058,6 +1064,9 @@ impl AppStateManager {
         );
 
         state.event_manager.emit_live_data(payload);
+        let boss_buff_snapshot = state
+            .boss_buff_monitors
+            .build_all_buff_snapshots(state.server_clock_offset);
 
         let boss_count = state
             .encounter
@@ -1066,7 +1075,8 @@ impl AppStateManager {
             .filter(|entity| entity.is_boss())
             .count();
         let mut all_hate_lists = HashMap::with_capacity(boss_count);
-        let mut new_names = HashMap::with_capacity(boss_count);
+        let mut new_names =
+            HashMap::with_capacity(boss_count.saturating_add(boss_buff_snapshot.len()));
 
         for (&boss_uid, entity) in &state.encounter.entity_uid_to_entity {
             if !entity.is_boss() {
@@ -1104,15 +1114,26 @@ impl AppStateManager {
             }
         }
 
+        for &target_uid in boss_buff_snapshot.keys() {
+            if !state.sent_overlay_uids.insert(target_uid) {
+                continue;
+            }
+
+            let Some(entity) = state.encounter.entity_uid_to_entity.get(&target_uid) else {
+                continue;
+            };
+
+            new_names.insert(
+                target_uid,
+                resolve_entity_display_name(target_uid, entity, &state.attr_store),
+            );
+        }
+
         state.event_manager.emit_hate_list_update(all_hate_lists);
 
         if !new_names.is_empty() {
             state.event_manager.emit_entity_name_map(new_names);
         }
-
-        let boss_buff_snapshot = state
-            .boss_buff_monitors
-            .build_all_buff_snapshots(state.server_clock_offset);
         state
             .event_manager
             .emit_boss_buff_update(boss_buff_snapshot);
