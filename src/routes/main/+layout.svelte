@@ -249,25 +249,13 @@
       navigateUnlisten = unlisten;
     });
 
-    void (async () => {
-      try {
-        updateUnlisten = await listen<UpdateInfo>("update-available", (event) => {
-          updateInfo = event.payload;
-        });
-      } catch (err) {
-        console.error("Failed to subscribe update-available event", err);
-        return;
-      }
-
-      try {
-        const result = await commands.triggerUpdateCheck();
-        if (result.status === "error") {
-          console.error("Failed to trigger update check", result.error);
-        }
-      } catch (err) {
-        console.error("Failed to trigger update check", err);
-      }
-    })();
+    listen<UpdateInfo>("update-available", (event) => {
+      updateInfo = event.payload;
+    }).then((unlisten) => {
+      updateUnlisten = unlisten;
+    }).catch((err) => {
+      console.error("Failed to subscribe update-available event", err);
+    });
 
     // Get app version and check changelog
     getVersion().then((v) => {
