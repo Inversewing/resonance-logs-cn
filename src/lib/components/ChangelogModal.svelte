@@ -1,21 +1,8 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { marked } from 'marked';
   import changelogRaw from '../../../CHANGELOG.md?raw';
+  import MarkdownContent from './MarkdownContent.svelte';
 
   let { onclose }: { onclose?: () => void } = $props();
-
-  let html = $state('');
-
-  onMount(async () => {
-    try {
-      // Parse markdown asynchronously
-      html = await marked.parse(changelogRaw) as string;
-    } catch (err) {
-      console.error('Failed to parse changelog:', err);
-      html = `<pre>${changelogRaw}</pre>`;
-    }
-  });
 
   function close() {
     onclose?.();
@@ -32,11 +19,16 @@
   >
   </button>
 
-  <div class="relative bg-card border border-border rounded-xl shadow-2xl w-[90vw] max-w-4xl h-[85vh] overflow-hidden z-10 flex flex-col">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-border">
-      <h2 class="text-xl font-semibold">Changelog</h2>
+  <div class="relative z-10 flex h-[85vh] w-[90vw] max-w-5xl flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+    <div class="flex items-start justify-between border-b border-border px-6 py-4">
+      <div>
+        <h2 class="text-xl font-semibold">更新日志</h2>
+        <p class="mt-1 text-sm text-muted-foreground">
+          查看本次版本的新增、修复和兼容性提醒。
+        </p>
+      </div>
       <button
-        class="text-muted-foreground hover:text-foreground transition-colors p-2 hover:bg-muted rounded-md"
+        class="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         type="button"
         onclick={close}
         aria-label="Close"
@@ -47,24 +39,8 @@
         </svg>
       </button>
     </div>
-    <div class="flex-1 overflow-auto p-6">
-      {#if html}
-        <div class="space-y-2 prose dark:prose-invert max-w-none">
-          {@html html}
-        </div>
-      {:else}
-        <div class="flex items-center justify-center h-full text-muted-foreground">
-          Loading changelog...
-        </div>
-      {/if}
+    <div class="flex-1 overflow-auto px-6 py-6">
+      <MarkdownContent source={changelogRaw} loadingText="Loading changelog..." />
     </div>
   </div>
 </div>
-
-<style>
-  :global(.prose p) { margin: 0 0 0.75rem 0; }
-  :global(.prose ul) { padding-left: 1.25rem; margin: 0 0 0.75rem 0; }
-  :global(.prose h1) { font-size: 1.25rem; margin-bottom: 0.5rem; }
-  :global(.prose h2) { font-size: 1.125rem; margin-bottom: 0.4rem; }
-  :global(.prose h3) { font-size: 1rem; margin-bottom: 0.3rem; }
-</style>

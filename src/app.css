@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @layer base {
   /* https://ux.stackexchange.com/questions/105024/why-dont-button-html-elements-have-a-css-cursor-pointer-by-default */
@@ -124,6 +125,135 @@
   body {
     background: var(--background-main);
     color: var(--foreground);
+  }
+}
+
+@layer components {
+  .markdown-body {
+    --tw-prose-body: var(--foreground);
+    --tw-prose-headings: var(--foreground);
+    --tw-prose-lead: var(--muted-foreground);
+    --tw-prose-links: var(--foreground);
+    --tw-prose-bold: var(--foreground);
+    --tw-prose-counters: var(--muted-foreground);
+    --tw-prose-bullets: var(--muted-foreground);
+    --tw-prose-hr: var(--border);
+    --tw-prose-quotes: var(--foreground);
+    --tw-prose-quote-borders: var(--border);
+    --tw-prose-captions: var(--muted-foreground);
+    --tw-prose-code: var(--foreground);
+    --tw-prose-pre-code: var(--foreground);
+    --tw-prose-pre-bg: var(--muted);
+    --tw-prose-th-borders: var(--border);
+    --tw-prose-td-borders: var(--border);
+    @apply prose max-w-none text-[0.95rem];
+    color: var(--foreground);
+  }
+
+  .markdown-body--comfortable {
+    @apply mx-auto w-full max-w-[75ch];
+  }
+
+  .markdown-body :where(h1, h2, h3, h4) {
+    letter-spacing: -0.01em;
+  }
+
+  .markdown-body :where(h1) {
+    @apply mb-5 text-2xl font-semibold;
+  }
+
+  .markdown-body :where(h2) {
+    @apply mt-10 mb-4 border-b border-border pb-2 text-xl font-semibold;
+  }
+
+  .markdown-body :where(h3) {
+    @apply mt-8 mb-3 text-lg font-semibold;
+  }
+
+  .markdown-body :where(h4) {
+    @apply mt-6 mb-2 text-base font-semibold;
+  }
+
+  .markdown-body :where(p, li) {
+    line-height: 1.72;
+  }
+
+  .markdown-body :where(p) {
+    @apply my-3;
+  }
+
+  .markdown-body :where(ul, ol) {
+    @apply my-4 pl-5;
+  }
+
+  .markdown-body :where(ul) {
+    list-style: disc;
+  }
+
+  .markdown-body :where(ol) {
+    list-style: decimal;
+  }
+
+  .markdown-body :where(ul ul) {
+    list-style: circle;
+  }
+
+  .markdown-body :where(ol ol) {
+    list-style: lower-alpha;
+  }
+
+  .markdown-body :where(li) {
+    @apply my-1.5;
+  }
+
+  .markdown-body :where(li > p:first-child) {
+    margin-top: 0;
+  }
+
+  .markdown-body :where(li > p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .markdown-body :where(strong) {
+    font-weight: 600;
+  }
+
+  .markdown-body :where(a) {
+    text-underline-offset: 0.18em;
+  }
+
+  .markdown-body :where(blockquote) {
+    @apply border-l-2 pl-4 italic;
+    color: var(--muted-foreground);
+  }
+
+  .markdown-body :where(hr) {
+    @apply my-8;
+  }
+
+  .markdown-body :where(code):not(:where(pre code)) {
+    @apply rounded-sm px-1.5 py-0.5 text-[0.9em];
+    background: var(--muted);
+  }
+
+  .markdown-body :where(code):not(:where(pre code))::before,
+  .markdown-body :where(code):not(:where(pre code))::after {
+    content: none;
+  }
+
+  .markdown-body :where(pre) {
+    @apply overflow-x-auto rounded-lg border px-4 py-3 text-[0.9rem];
+    background: var(--muted);
+    border-color: var(--border);
+  }
+
+  .markdown-body :where(pre code) {
+    background: transparent;
+    padding: 0;
+  }
+
+  .markdown-body :where(table) {
+    @apply block w-full overflow-x-auto text-sm;
   }
 }
 

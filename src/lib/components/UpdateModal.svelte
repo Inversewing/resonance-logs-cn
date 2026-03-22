@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { marked } from 'marked';
   import { openUrl } from '@tauri-apps/plugin-opener';
+  import MarkdownContent from './MarkdownContent.svelte';
 
   export interface UpdateInfo {
     version: string;
@@ -17,19 +17,6 @@
     currentVersion: string;
     onclose?: () => void;
   } = $props();
-
-  let html = $state('');
-
-  $effect(() => {
-    void (async () => {
-      try {
-        html = info.body ? (await marked.parse(info.body) as string) : '';
-      } catch (err) {
-        console.error('Failed to parse update notes:', err);
-        html = info.body ? `<pre>${info.body}</pre>` : '';
-      }
-    })();
-  });
 
   function close() {
     onclose?.();
@@ -74,14 +61,8 @@
       </button>
     </div>
 
-    <div class="flex-1 overflow-auto p-6">
-      {#if html}
-        <div class="prose max-w-none space-y-2 dark:prose-invert">
-          {@html html}
-        </div>
-      {:else}
-        <p class="text-sm text-muted-foreground">该版本暂无更新说明。</p>
-      {/if}
+    <div class="flex-1 overflow-auto px-6 py-6">
+      <MarkdownContent source={info.body} emptyText="该版本暂无更新说明。" />
     </div>
 
     <div class="space-y-3 border-t border-border px-6 py-4">
@@ -107,11 +88,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  :global(.prose p) { margin: 0 0 0.75rem 0; }
-  :global(.prose ul) { margin: 0 0 0.75rem 0; padding-left: 1.25rem; }
-  :global(.prose h1) { margin-bottom: 0.5rem; font-size: 1.25rem; }
-  :global(.prose h2) { margin-bottom: 0.4rem; font-size: 1.125rem; }
-  :global(.prose h3) { margin-bottom: 0.3rem; font-size: 1rem; }
-</style>
