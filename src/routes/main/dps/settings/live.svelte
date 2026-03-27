@@ -204,11 +204,6 @@
             label="默认木桩目标"
             description="头部打桩按钮会直接使用这里的默认目标"
           />
-          <SettingsSwitch
-            bind:checked={SETTINGS.trainingDummy.state.showHeaderControl}
-            label="显示头部打桩按钮"
-            description="在实时窗口头部显示“打桩模式”开关和状态提示。"
-          />
         </div>
       {/if}
     </div>

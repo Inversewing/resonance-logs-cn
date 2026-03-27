@@ -299,6 +299,7 @@
         showBossOnlyButton: false,
         showSettingsButton: false,
         showMinimizeButton: false,
+        showHeaderControl: false,
         showTotalDamage: false,
         showTotalDps: false,
         showBossHealth: false,
@@ -368,6 +369,7 @@
         showBossOnlyButton: false,
         showSettingsButton: false,
         showMinimizeButton: false,
+        showHeaderControl: false,
         showTotalDamage: false,
         showTotalDps: false,
         showBossHealth: false,
@@ -436,6 +438,7 @@
         showBossOnlyButton: true,
         showSettingsButton: true,
         showMinimizeButton: true,
+        showHeaderControl: true,
         showTotalDamage: true,
         showTotalDps: true,
         showBossHealth: true,
@@ -504,6 +507,7 @@
         showBossOnlyButton: true,
         showSettingsButton: true,
         showMinimizeButton: true,
+        showHeaderControl: true,
         showTotalDamage: true,
         showTotalDps: true,
         showBossHealth: true,
@@ -1692,6 +1696,14 @@
                       />
                     </div>
                   {/if}
+
+                  <SettingsSwitch
+                    bind:checked={
+                      SETTINGS.live.headerCustomization.state.showHeaderControl
+                    }
+                    label="显示打桩按钮"
+                    description="在实时窗口头部显示打桩模式按钮"
+                  />
 
                   <!-- Settings Button -->
                   <SettingsSwitch

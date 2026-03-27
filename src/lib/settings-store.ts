@@ -685,7 +685,6 @@ const DEFAULT_SETTINGS = {
   monsterMonitor: createDefaultMonsterMonitorConfig(),
   trainingDummy: {
     defaultMonsterId: 122 as 115 | 122,
-    showHeaderControl: true,
   },
   live: {
     general: { ...DEFAULT_GENERAL_SETTINGS },
@@ -707,6 +706,7 @@ const DEFAULT_SETTINGS = {
       showBossOnlyButton: true,
       showSettingsButton: true,
       showMinimizeButton: true,
+      showHeaderControl: true,
       showTotalDamage: true,
       showTotalDps: true,
       showBossHealth: true,

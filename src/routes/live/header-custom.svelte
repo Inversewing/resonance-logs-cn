@@ -177,7 +177,7 @@
 
   // Check if we have any row 1 right content (buttons)
   const hasRow1Right = $derived(
-    trainingDummySettings.showHeaderControl ||
+    h.showHeaderControl ||
     h.showResetButton ||
       h.showPauseButton ||
       h.showSettingsButton ||
@@ -272,7 +272,7 @@
       <div
         class="col-start-2 row-start-1 flex items-center justify-self-end gap-2 shrink-0"
       >
-        {#if trainingDummySettings.showHeaderControl}
+        {#if h.showHeaderControl}
           <button
             class="{isTrainingDummyActive
               ? 'bg-muted text-foreground border-border shadow-sm'
