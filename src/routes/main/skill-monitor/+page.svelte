@@ -20,10 +20,8 @@
     type BuffNameInfo,
   } from "$lib/config/buff-name-table";
   import {
-    AVAILABLE_PANEL_ATTRS,
     createDefaultBuffGroup,
     createDefaultCustomPanelGroup,
-    createDefaultSkillMonitorProfile,
     ensureBuffAliases,
     SETTINGS,
     type BuffDisplayMode,
@@ -31,7 +29,6 @@
     type CustomPanelGroup,
     type CustomPanelStyle,
     type InlineBuffEntry,
-    type PanelAttrConfig,
     type PanelAreaRowRef,
     type SkillMonitorProfile,
     type TextBuffPanelDisplayMode,
@@ -51,6 +48,20 @@
     searchResonanceSkills,
     type CounterRulePreset,
   } from "$lib/skill-mappings";
+  import {
+    activeProfileOrDefault,
+    updateActiveProfile as updateSharedActiveProfile,
+  } from "$lib/skill-monitor-profile.svelte.js";
+  import {
+    ensureBuffGroup,
+    ensureBuffGroups,
+    ensureCustomPanelStyle,
+    ensureIndividualMonitorAllGroup,
+    ensureOverlaySizes,
+    ensurePanelAreaRowOrder,
+    ensurePanelAttrs,
+    ensureTextBuffPanelStyle,
+  } from "$lib/skill-monitor-normalize";
   import {
     ensureCustomPanelGroups,
     ensureInlineBuffEntries,
@@ -85,16 +96,7 @@
   const buffAliases = $derived.by(() =>
     ensureBuffAliases(SETTINGS.skillMonitor.state.buffAliases),
   );
-  const profiles = $derived(SETTINGS.skillMonitor.state.profiles);
-  const activeProfileIndex = $derived(
-    Math.min(
-      Math.max(SETTINGS.skillMonitor.state.activeProfileIndex, 0),
-      Math.max(0, profiles.length - 1),
-    ),
-  );
-  const activeProfile = $derived(
-    profiles[activeProfileIndex] ?? createDefaultSkillMonitorProfile(),
-  );
+  const activeProfile = $derived.by(() => activeProfileOrDefault());
   const selectedClassKey = $derived(activeProfile.selectedClass);
   const classSkills = $derived(getSkillsByClass(selectedClassKey));
   const durationSkills = $derived(getDurationSkillsByClass(selectedClassKey));
@@ -110,21 +112,9 @@
     expandBuffSelection(monitoredBuffIds, monitoredBuffCategories),
   );
   const monitoredPanelAttrs = $derived.by(() => ensurePanelAttrs(activeProfile));
-  const panelAttrGap = $derived(
-    Math.max(0, Math.min(24, Math.round(activeProfile.overlaySizes?.panelAttrGap ?? 4))),
-  );
-  const panelAttrFontSize = $derived(
-    Math.max(
-      10,
-      Math.min(28, Math.round(activeProfile.overlaySizes?.panelAttrFontSize ?? 14)),
-    ),
-  );
-  const panelAttrColumnGap = $derived(
-    Math.max(
-      0,
-      Math.min(240, Math.round(activeProfile.overlaySizes?.panelAttrColumnGap ?? 12)),
-    ),
-  );
+  const panelAttrGap = $derived(ensureOverlaySizes(activeProfile).panelAttrGap);
+  const panelAttrFontSize = $derived(ensureOverlaySizes(activeProfile).panelAttrFontSize);
+  const panelAttrColumnGap = $derived(ensureOverlaySizes(activeProfile).panelAttrColumnGap);
   const showSkillCdGroup = $derived(
     activeProfile.overlayVisibility?.showSkillCdGroup ?? true,
   );
@@ -192,6 +182,12 @@
     return Array.from(new Set(ids));
   }
 
+  function updateActiveProfile(
+    updater: (profile: SkillMonitorProfile) => SkillMonitorProfile,
+  ) {
+    updateSharedActiveProfile(updater, { createDefaultIfEmpty: true });
+  }
+
   function moveItem(ids: number[], item: number, direction: "up" | "down"): number[] {
     const idx = ids.indexOf(item);
     if (idx === -1) return ids;
@@ -212,149 +208,6 @@
     }
     const inGroup = new Set(group.buffIds);
     return uniqueIds((group.priorityBuffIds ?? []).filter((id) => inGroup.has(id)));
-  }
-
-  function ensureBuffGroup(group: BuffGroup, index: number): BuffGroup {
-    return {
-      id: group.id ?? `group_${index + 1}`,
-      name: group.name ?? `分组 ${index + 1}`,
-      buffIds: group.buffIds ?? [],
-      priorityBuffIds: group.priorityBuffIds ?? [],
-      monitorAll: group.monitorAll ?? false,
-      position: group.position ?? { x: 40 + index * 40, y: 310 + index * 40 },
-      iconSize: Math.max(24, Math.min(120, group.iconSize ?? 44)),
-      columns: Math.max(1, Math.min(12, group.columns ?? 6)),
-      rows: Math.max(1, Math.min(12, group.rows ?? 3)),
-      gap: Math.max(0, Math.min(16, group.gap ?? 6)),
-      showName: group.showName ?? true,
-      showTime: group.showTime ?? true,
-      showLayer: group.showLayer ?? true,
-    };
-  }
-
-  function ensureBuffGroups(profile: SkillMonitorProfile): BuffGroup[] {
-    return (profile.buffGroups ?? []).map((group, idx) => ensureBuffGroup(group, idx));
-  }
-
-  function ensureIndividualMonitorAllGroup(profile: SkillMonitorProfile): BuffGroup | null {
-    const group = profile.individualMonitorAllGroup;
-    if (!group) return null;
-    const normalized = ensureBuffGroup(group, 0);
-    return {
-      ...normalized,
-      monitorAll: true,
-      name: normalized.name || "全部 Buff",
-    };
-  }
-
-  function ensurePanelAttrs(profile: SkillMonitorProfile): PanelAttrConfig[] {
-    const current = profile.monitoredPanelAttrs ?? [];
-    const currentMap = new Map(current.map((item) => [item.attrId, item]));
-    return AVAILABLE_PANEL_ATTRS.map((item) => {
-      const existing = currentMap.get(item.attrId);
-      return {
-        attrId: item.attrId,
-        label: existing?.label ?? item.label,
-        color: existing?.color ?? item.color,
-        enabled: existing?.enabled ?? item.enabled,
-        format: existing?.format ?? item.format,
-      };
-    });
-  }
-
-  function isSameRowRef(a: PanelAreaRowRef, b: PanelAreaRowRef): boolean {
-    return a.attrId === b.attrId;
-  }
-
-  function ensurePanelAreaRowOrder(profile: SkillMonitorProfile): PanelAreaRowRef[] {
-    const enabledAttrIds = ensurePanelAttrs(profile)
-      .filter((item) => item.enabled)
-      .map((item) => item.attrId);
-    const attrIdSet = new Set(enabledAttrIds);
-    const normalized: PanelAreaRowRef[] = [];
-    for (const row of profile.panelAreaRowOrder ?? []) {
-      if (!attrIdSet.has(row.attrId)) continue;
-      if (!normalized.some((item) => isSameRowRef(item, row))) {
-        normalized.push({ type: "attr", attrId: row.attrId });
-      }
-    }
-    for (const attrId of enabledAttrIds) {
-      const row: PanelAreaRowRef = { type: "attr", attrId };
-      if (!normalized.some((item) => isSameRowRef(item, row))) {
-        normalized.push(row);
-      }
-    }
-    return normalized;
-  }
-
-  function ensureOverlaySizes(profile: SkillMonitorProfile) {
-    const current = profile.overlaySizes;
-    return {
-      skillCdGroupScale: current?.skillCdGroupScale ?? 1,
-      resourceGroupScale: current?.resourceGroupScale ?? 1,
-      textBuffPanelScale: current?.textBuffPanelScale ?? 1,
-      panelAttrGroupScale: current?.panelAttrGroupScale ?? 1,
-      customPanelGroupScale: current?.customPanelGroupScale ?? 1,
-      panelAttrGap: Math.max(0, Math.min(24, Math.round(current?.panelAttrGap ?? 4))),
-      panelAttrFontSize: Math.max(
-        10,
-        Math.min(28, Math.round(current?.panelAttrFontSize ?? 14)),
-      ),
-      panelAttrColumnGap: Math.max(
-        0,
-        Math.min(240, Math.round(current?.panelAttrColumnGap ?? 12)),
-      ),
-      iconBuffSizes: current?.iconBuffSizes ?? {},
-      skillDurationSizes: current?.skillDurationSizes ?? {},
-      categoryIconSizes: current?.categoryIconSizes ?? {},
-    };
-  }
-
-  function ensureCustomPanelStyle(profile: SkillMonitorProfile): CustomPanelStyle {
-    const current = profile.customPanelStyle;
-    return {
-      gap: Math.max(0, Math.min(24, Math.round(current?.gap ?? 6))),
-      columnGap: Math.max(0, Math.min(240, Math.round(current?.columnGap ?? 12))),
-      fontSize: Math.max(10, Math.min(28, Math.round(current?.fontSize ?? 14))),
-      nameColor: current?.nameColor ?? "#ffffff",
-      valueColor: current?.valueColor ?? "#ffffff",
-      progressColor: current?.progressColor ?? "#ffffff",
-      progressOpacity: Math.max(0, Math.min(1, current?.progressOpacity ?? 0.4)),
-    };
-  }
-
-  function ensureTextBuffPanelStyle(profile: SkillMonitorProfile): TextBuffPanelStyle {
-    const current = profile.textBuffPanelStyle;
-    return {
-      displayMode: current?.displayMode === "classic" ? "classic" : "modern",
-      gap: Math.max(0, Math.min(24, Math.round(current?.gap ?? 6))),
-      columnGap: Math.max(0, Math.min(240, Math.round(current?.columnGap ?? 8))),
-      fontSize: Math.max(10, Math.min(28, Math.round(current?.fontSize ?? 12))),
-      nameColor: current?.nameColor ?? "#ffffff",
-      valueColor: current?.valueColor ?? "#ffffff",
-      progressColor: current?.progressColor ?? "#ffffff",
-      progressOpacity: Math.max(0, Math.min(1, current?.progressOpacity ?? 0.4)),
-    };
-  }
-
-  function updateActiveProfile(
-    updater: (profile: SkillMonitorProfile) => SkillMonitorProfile,
-  ) {
-    const state = SETTINGS.skillMonitor.state;
-    const currentProfiles = state.profiles;
-    if (currentProfiles.length === 0) {
-      state.profiles = [createDefaultSkillMonitorProfile()];
-      state.activeProfileIndex = 0;
-      return;
-    }
-
-    const index = Math.min(
-      Math.max(state.activeProfileIndex, 0),
-      currentProfiles.length - 1,
-    );
-    state.profiles = currentProfiles.map((profile, i) =>
-      i === index ? updater(profile) : profile,
-    );
   }
 
   function setSelectedClass(classKey: string) {
@@ -1019,7 +872,7 @@
   function movePanelAreaRow(row: PanelAreaRowRef, direction: "up" | "down") {
     updateActiveProfile((profile) => {
       const current = ensurePanelAreaRowOrder(profile);
-      const idx = current.findIndex((item) => isSameRowRef(item, row));
+      const idx = current.findIndex((item) => item.attrId === row.attrId);
       if (idx === -1) return profile;
       const target = direction === "up" ? idx - 1 : idx + 1;
       if (target < 0 || target >= current.length) return profile;

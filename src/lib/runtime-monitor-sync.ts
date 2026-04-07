@@ -4,26 +4,13 @@ import {
   type MonitorRuntimeSnapshot,
 } from "$lib/bindings";
 import { expandBuffSelection } from "$lib/config/buff-name-table";
-import {
-  SETTINGS,
-  type SkillMonitorProfile,
-} from "$lib/settings-store";
+import { activeProfile as getActiveProfile } from "$lib/skill-monitor-profile.svelte.js";
+import { SETTINGS } from "$lib/settings-store";
 import {
   getCounterRules,
   getDefaultMonitoredBuffIds,
   resolveUserCounterRulesToPresets,
 } from "$lib/skill-mappings";
-
-function getActiveSkillMonitorProfile(): SkillMonitorProfile | null {
-  const profiles = SETTINGS.skillMonitor.state.profiles;
-  if (profiles.length === 0) return null;
-
-  const index = Math.min(
-    Math.max(SETTINGS.skillMonitor.state.activeProfileIndex, 0),
-    profiles.length - 1,
-  );
-  return profiles[index] ?? null;
-}
 
 function uniqueSortedNumbers(values: number[]): number[] {
   return Array.from(new Set(values)).sort((a, b) => a - b);
@@ -49,29 +36,29 @@ function getCounterRuleBuffIds(rule: CounterRule): number[] {
 
 function buildSkillRuntimeSnapshot(): MonitorRuntimeSnapshot["skill"] {
   const enabled = SETTINGS.skillMonitor.state.enabled;
-  const activeProfile = getActiveSkillMonitorProfile();
-  const selectedClass = activeProfile?.selectedClass ?? "wind_knight";
-  const monitoredSkillIds = activeProfile?.monitoredSkillIds ?? [];
+  const profile = getActiveProfile();
+  const selectedClass = profile?.selectedClass ?? "wind_knight";
+  const monitoredSkillIds = profile?.monitoredSkillIds ?? [];
   const monitoredSkillDurationIds =
-    activeProfile?.monitoredSkillDurationIds ?? [];
+    profile?.monitoredSkillDurationIds ?? [];
   const mergedSkillIds = uniqueSortedNumbers([
     ...monitoredSkillIds,
     ...monitoredSkillDurationIds,
   ]);
   const monitoredBuffIds = expandBuffSelection(
-    activeProfile?.monitoredBuffIds ?? [],
-    activeProfile?.monitoredBuffCategories,
+    profile?.monitoredBuffIds ?? [],
+    profile?.monitoredBuffCategories,
   );
-  const monitoredPanelAttrs = activeProfile?.monitoredPanelAttrs ?? [];
-  const customPanelEntries = activeProfile?.customPanelGroups?.length
-    ? activeProfile.customPanelGroups.flatMap((group) => group.entries ?? [])
-    : (activeProfile?.inlineBuffEntries ?? []);
+  const monitoredPanelAttrs = profile?.monitoredPanelAttrs ?? [];
+  const customPanelEntries = profile?.customPanelGroups?.length
+    ? profile.customPanelGroups.flatMap((group) => group.entries ?? [])
+    : (profile?.inlineBuffEntries ?? []);
   const inlineCounterRuleIds = customPanelEntries
     .filter((entry) => entry.sourceType === "counter")
     .map((entry) => entry.sourceId);
-  const buffDisplayMode = activeProfile?.buffDisplayMode ?? "individual";
-  const buffGroups = activeProfile?.buffGroups ?? [];
-  const individualAllGroup = activeProfile?.individualMonitorAllGroup ?? null;
+  const buffDisplayMode = profile?.buffDisplayMode ?? "individual";
+  const buffGroups = profile?.buffGroups ?? [];
+  const individualAllGroup = profile?.individualMonitorAllGroup ?? null;
   const monitorAllBuff =
     (buffDisplayMode === "grouped" &&
       buffGroups.some((group) => group.monitorAll)) ||
@@ -92,7 +79,7 @@ function buildSkillRuntimeSnapshot(): MonitorRuntimeSnapshot["skill"] {
       effectSlots: rule.effectSlots,
     }));
   const enabledUserCounterRules = resolveUserCounterRulesToPresets(
-    (activeProfile?.userCounterRules ?? []).filter((rule) =>
+    (profile?.userCounterRules ?? []).filter((rule) =>
       activeCounterRuleIds.includes(rule.ruleId),
     ),
   ).map(({ name: _name, ...rule }) => rule);

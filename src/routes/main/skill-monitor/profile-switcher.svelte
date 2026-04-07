@@ -3,17 +3,15 @@
     SETTINGS,
     createDefaultSkillMonitorProfile,
   } from "$lib/settings-store";
+  import {
+    activeProfileOrDefault,
+    clampedProfileIndex,
+    updateActiveProfile,
+  } from "$lib/skill-monitor-profile.svelte.js";
 
   const profiles = $derived(SETTINGS.skillMonitor.state.profiles);
-  const activeProfileIndex = $derived(
-    Math.min(
-      Math.max(SETTINGS.skillMonitor.state.activeProfileIndex, 0),
-      Math.max(0, profiles.length - 1),
-    ),
-  );
-  const activeProfile = $derived(
-    profiles[activeProfileIndex] ?? createDefaultSkillMonitorProfile(),
-  );
+  const activeProfileIndex = $derived.by(() => clampedProfileIndex());
+  const activeProfile = $derived.by(() => activeProfileOrDefault());
 
   function setActiveProfileIndex(index: number) {
     const maxIndex = Math.max(0, SETTINGS.skillMonitor.state.profiles.length - 1);
@@ -24,14 +22,7 @@
   }
 
   function updateActiveProfileName(name: string) {
-    const state = SETTINGS.skillMonitor.state;
-    const index = Math.min(
-      Math.max(state.activeProfileIndex, 0),
-      Math.max(0, state.profiles.length - 1),
-    );
-    state.profiles = state.profiles.map((profile, i) =>
-      i === index ? { ...profile, name } : profile,
-    );
+    updateActiveProfile((profile) => ({ ...profile, name }));
   }
 
   function addProfile() {

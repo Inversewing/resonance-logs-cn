@@ -8,17 +8,24 @@ export {
   ensureCustomPanelGroups,
   ensureInlineBuffEntries,
 } from "$lib/custom-panel-utils";
+export {
+  DEFAULT_OVERLAY_SIZES,
+  ensureBuffGroup,
+  ensureBuffGroups,
+  ensureCustomPanelStyle,
+  ensureIndividualMonitorAllGroup,
+  ensureOverlaySizes,
+  ensurePanelAreaRowOrder,
+  ensurePanelAttrs,
+  ensureTextBuffPanelStyle,
+} from "$lib/skill-monitor-normalize";
+import { ensurePanelAreaRowOrder } from "$lib/skill-monitor-normalize";
 import type {
-  BuffGroup,
-  CustomPanelStyle,
   InlineBuffEntry,
   OverlayPositions,
-  OverlaySizes,
   OverlayVisibility,
-  PanelAreaRowRef,
   PanelAttrConfig,
   SkillMonitorProfile,
-  TextBuffPanelStyle,
 } from "$lib/settings-store";
 import {
   findAnySkillByBaseId,
@@ -26,7 +33,6 @@ import {
 } from "$lib/skill-mappings";
 import {
   DEFAULT_OVERLAY_POSITIONS,
-  DEFAULT_OVERLAY_SIZES,
   DEFAULT_OVERLAY_VISIBILITY,
   DEFAULT_RESOURCE_VALUES_BY_CLASS,
   RESOURCE_SCALES_BY_CLASS,
@@ -61,41 +67,6 @@ export function ensureOverlayPositions(
   };
 }
 
-export function ensureOverlaySizes(profile: SkillMonitorProfile): OverlaySizes {
-  const current = profile.overlaySizes;
-  return {
-    skillCdGroupScale:
-      current?.skillCdGroupScale ?? DEFAULT_OVERLAY_SIZES.skillCdGroupScale,
-    resourceGroupScale:
-      current?.resourceGroupScale ?? DEFAULT_OVERLAY_SIZES.resourceGroupScale,
-    textBuffPanelScale:
-      current?.textBuffPanelScale ?? DEFAULT_OVERLAY_SIZES.textBuffPanelScale,
-    panelAttrGroupScale:
-      current?.panelAttrGroupScale ?? DEFAULT_OVERLAY_SIZES.panelAttrGroupScale,
-    customPanelGroupScale:
-      current?.customPanelGroupScale ??
-      DEFAULT_OVERLAY_SIZES.customPanelGroupScale,
-    panelAttrGap: clampRounded(
-      current?.panelAttrGap ?? DEFAULT_OVERLAY_SIZES.panelAttrGap,
-      0,
-      24,
-    ),
-    panelAttrFontSize: clampRounded(
-      current?.panelAttrFontSize ?? DEFAULT_OVERLAY_SIZES.panelAttrFontSize,
-      10,
-      28,
-    ),
-    panelAttrColumnGap: clampRounded(
-      current?.panelAttrColumnGap ?? DEFAULT_OVERLAY_SIZES.panelAttrColumnGap,
-      0,
-      240,
-    ),
-    iconBuffSizes: current?.iconBuffSizes ?? {},
-    skillDurationSizes: current?.skillDurationSizes ?? {},
-    categoryIconSizes: current?.categoryIconSizes ?? {},
-  };
-}
-
 export function ensureOverlayVisibility(
   profile: SkillMonitorProfile,
 ): OverlayVisibility {
@@ -116,37 +87,6 @@ export function ensureOverlayVisibility(
     showCustomPanelGroup:
       current?.showCustomPanelGroup ??
       DEFAULT_OVERLAY_VISIBILITY.showCustomPanelGroup,
-  };
-}
-
-export function ensureCustomPanelStyle(
-  profile: SkillMonitorProfile | null,
-): CustomPanelStyle {
-  const current = profile?.customPanelStyle;
-  return {
-    gap: clampRounded(current?.gap ?? 6, 0, 24),
-    columnGap: clampRounded(current?.columnGap ?? 12, 0, 240),
-    fontSize: clampRounded(current?.fontSize ?? 14, 10, 28),
-    nameColor: current?.nameColor ?? "#ffffff",
-    valueColor: current?.valueColor ?? "#ffffff",
-    progressColor: current?.progressColor ?? "#ffffff",
-    progressOpacity: clampDecimal(current?.progressOpacity ?? 0.4, 0, 1),
-  };
-}
-
-export function ensureTextBuffPanelStyle(
-  profile: SkillMonitorProfile | null,
-): TextBuffPanelStyle {
-  const current = profile?.textBuffPanelStyle;
-  return {
-    displayMode: current?.displayMode === "classic" ? "classic" : "modern",
-    gap: clampRounded(current?.gap ?? 6, 0, 24),
-    columnGap: clampRounded(current?.columnGap ?? 8, 0, 240),
-    fontSize: clampRounded(current?.fontSize ?? 12, 10, 28),
-    nameColor: current?.nameColor ?? "#ffffff",
-    valueColor: current?.valueColor ?? "#ffffff",
-    progressColor: current?.progressColor ?? "#ffffff",
-    progressOpacity: clampDecimal(current?.progressOpacity ?? 0.4, 0, 1),
   };
 }
 
@@ -307,74 +247,6 @@ export function getCustomPanelDisplayRow(
   };
 }
 
-export function ensureBuffGroups(profile: SkillMonitorProfile): BuffGroup[] {
-  const groups = profile.buffGroups ?? [];
-  return groups.map((group, index) => ({
-    id: group.id ?? `group_${index + 1}`,
-    name: group.name ?? `分组 ${index + 1}`,
-    buffIds: group.buffIds ?? [],
-    priorityBuffIds: group.priorityBuffIds ?? [],
-    monitorAll: group.monitorAll ?? false,
-    position: group.position ?? { x: 40 + index * 40, y: 310 + index * 40 },
-    iconSize: clampRounded(group.iconSize ?? 44, 24, 120),
-    columns: clampRounded(group.columns ?? 6, 1, 12),
-    rows: clampRounded(group.rows ?? 3, 1, 12),
-    gap: clampRounded(group.gap ?? 6, 0, 16),
-    showName: group.showName ?? true,
-    showTime: group.showTime ?? true,
-    showLayer: group.showLayer ?? true,
-  }));
-}
-
-export function ensureIndividualMonitorAllGroup(
-  profile: SkillMonitorProfile,
-): BuffGroup | null {
-  const group = profile.individualMonitorAllGroup;
-  if (!group) return null;
-  return {
-    id: group.id ?? "individual_all_group",
-    name: group.name ?? "全部 Buff",
-    buffIds: [],
-    priorityBuffIds: group.priorityBuffIds ?? [],
-    monitorAll: true,
-    position: group.position ?? { x: 40, y: 310 },
-    iconSize: clampRounded(group.iconSize ?? 44, 24, 120),
-    columns: clampRounded(group.columns ?? 6, 1, 12),
-    rows: clampRounded(group.rows ?? 3, 1, 12),
-    gap: clampRounded(group.gap ?? 6, 0, 16),
-    showName: group.showName ?? true,
-    showTime: group.showTime ?? true,
-    showLayer: group.showLayer ?? true,
-  };
-}
-
-function samePanelRowRef(a: PanelAreaRowRef, b: PanelAreaRowRef): boolean {
-  return a.attrId === b.attrId;
-}
-
-export function ensurePanelAreaRowOrder(
-  profile: SkillMonitorProfile,
-  monitoredPanelAttrs: PanelAttrConfig[],
-): PanelAreaRowRef[] {
-  const enabledAttrIds = monitoredPanelAttrs
-    .filter((item) => item.enabled)
-    .map((item) => item.attrId);
-  const attrIdSet = new Set(enabledAttrIds);
-  const rows: PanelAreaRowRef[] = [];
-  for (const row of profile.panelAreaRowOrder ?? []) {
-    if (!attrIdSet.has(row.attrId)) continue;
-    if (!rows.some((item) => samePanelRowRef(item, row))) {
-      rows.push({ type: "attr", attrId: row.attrId });
-    }
-  }
-  for (const attrId of enabledAttrIds) {
-    if (!rows.some((row) => row.type === "attr" && row.attrId === attrId)) {
-      rows.push({ type: "attr", attrId });
-    }
-  }
-  return rows;
-}
-
 export function buildPanelAreaRows(
   activeProfile: SkillMonitorProfile | null,
   enabledPanelAttrs: PanelAttrConfig[],
@@ -490,14 +362,6 @@ export function getResourcePreciseValue(
   }
   const scale = RESOURCE_SCALES_BY_CLASS[selectedClassKey]?.[index] ?? 1;
   return raw / scale;
-}
-
-function clampRounded(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, Math.round(value)));
-}
-
-function clampDecimal(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
 }
 
 function formatTenthsDown(value: number): string {
