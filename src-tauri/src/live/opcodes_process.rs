@@ -12,6 +12,7 @@ use blueprotobuf_lib::blueprotobuf;
 use blueprotobuf_lib::blueprotobuf::{Attr, EDamageType, EEntityType};
 use bytes::Buf;
 use log::{info, warn};
+use std::collections::hash_map::Entry;
 use std::default::Default;
 
 /// Parses packed varints from ATTR_FIGHT_RESOURCES (50002) raw data.
@@ -171,11 +172,29 @@ pub fn process_sync_near_entities(
         let target_uid = target_uuid >> 16;
         let target_entity_type = EEntityType::from(target_uuid);
 
-        let target_entity = encounter
-            .entity_uid_to_entity
-            .entry(target_uid)
-            .or_default();
-        target_entity.entity_type = target_entity_type;
+        let target_entity = match encounter.entity_uid_to_entity.entry(target_uid) {
+            Entry::Occupied(mut entry) => {
+                if entry.get().entity_type == EEntityType::EntChar
+                    && target_entity_type != EEntityType::EntChar
+                {
+                    info!(
+                        target: "app::live",
+                        "SyncNearEntities: blocked entity_type overwrite for uid={} from EntChar to {:?} (uuid=0x{:x}, low16={})",
+                        target_uid,
+                        target_entity_type,
+                        target_uuid,
+                        target_uuid & 0xffff
+                    );
+                } else {
+                    entry.get_mut().entity_type = target_entity_type;
+                }
+                entry.into_mut()
+            }
+            Entry::Vacant(entry) => entry.insert(Entity {
+                entity_type: target_entity_type,
+                ..Default::default()
+            }),
+        };
 
         match target_entity_type {
             EEntityType::EntChar => {
