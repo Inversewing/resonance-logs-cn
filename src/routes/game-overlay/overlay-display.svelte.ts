@@ -106,6 +106,12 @@ const _buffSnapshot = $derived.by(() => {
   const nextIconBuffs: IconBuffDisplay[] = [];
   const nextTextBuffs: TextBuffDisplay[] = [];
   const nextCustomPanelRowsByGroup = new Map<string, CustomPanelDisplayRow[]>();
+  const userExplicitBuffIds = new Set([
+    ...expandedMonitoredBuffIds(),
+    ..._normalizedBuffGroups
+      .filter((g) => !g.monitorAll)
+      .flatMap((g) => g.buffIds),
+  ]);
 
   for (const [baseId, buff] of buffMap()) {
     if (skippedInlineBuffIds.has(baseId)) continue;
@@ -126,8 +132,7 @@ const _buffSnapshot = $derived.by(() => {
       continue;
     }
 
-    // Filter passive/infinite single-stack buffs from both icon and text displays.
-    if (buff.durationMs <= 0 && buff.layer <= 1) continue;
+    if (buff.durationMs <= 0 && buff.layer <= 1 && !userExplicitBuffIds.has(baseId)) continue;
 
     const definition = buffDefinitionsMap.get(baseId);
     const name = resolveBuffDisplayName(baseId, currentBuffAliases);
