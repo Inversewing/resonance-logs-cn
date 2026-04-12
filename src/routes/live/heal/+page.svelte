@@ -146,6 +146,16 @@
               "Hide Others' Name"
             ? player.className
             : ""}
+        {@const showAbilityScore =
+          player.abilityScore > 0 &&
+          (isLocalPlayer
+            ? SETTINGS.live.general.state.showYourAbilityScore
+            : SETTINGS.live.general.state.showOthersAbilityScore)}
+        {@const showSeasonStrength =
+          player.seasonStrength > 0 &&
+          (isLocalPlayer
+            ? SETTINGS.live.general.state.showYourSeasonStrength
+            : SETTINGS.live.general.state.showOthersSeasonStrength)}
         <tr
           class="relative bg-background/40 hover:bg-muted/60 transition-colors cursor-pointer group"
           style="height: {tableSettings.playerRowHeight}px; font-size: {tableSettings.playerFontSize}px;"
@@ -164,31 +174,30 @@
                     "未知职业",
                 )}
               />
-              {#if player.abilityScore > 0 && (isLocalPlayer ? SETTINGS.live.general.state.showYourAbilityScore : SETTINGS.live.general.state.showOthersAbilityScore)}
-                {#if SETTINGS.live.general.state.shortenAbilityScore}
-                  <span
-                    class="tabular-nums"
-                    style="color: {customThemeColors.tableTextColor};"
-                    ><AbbreviatedNumber
-                      num={player.abilityScore}
-                      suffixFontSize={tableSettings.abbreviatedFontSize}
-                      suffixColor={customThemeColors.tableAbbreviatedColor}
-                    /></span
-                  >
-                {:else}
-                  <span
-                    class="tabular-nums"
-                    style="color: {customThemeColors.tableTextColor};"
-                    >{player.abilityScore}</span
-                  >
-                {/if}
-              {/if}
-              {#if player.seasonStrength > 0 && (isLocalPlayer ? SETTINGS.live.general.state.showYourSeasonStrength : SETTINGS.live.general.state.showOthersSeasonStrength)}
+              {#if showAbilityScore || showSeasonStrength}
                 <span
-                  class="-ml-0.5 tabular-nums"
+                  class="inline-flex items-center gap-0 tabular-nums"
                   style="color: {customThemeColors.tableTextColor};"
-                  >({player.seasonStrength})</span
                 >
+                  {#if showAbilityScore}
+                    {#if SETTINGS.live.general.state.shortenAbilityScore}
+                      <AbbreviatedNumber
+                        num={player.abilityScore}
+                        suffixFontSize={tableSettings.abbreviatedFontSize}
+                        suffixColor={customThemeColors.tableAbbreviatedColor}
+                      />
+                    {:else}
+                      <span>{player.abilityScore}</span>
+                    {/if}
+                  {/if}
+                  {#if showSeasonStrength}
+                    <span
+                      class={showAbilityScore ? "ml-0 tabular-nums" : "tabular-nums"}
+                      style="color: {customThemeColors.tableTextColor};"
+                      >({player.seasonStrength})</span
+                    >
+                  {/if}
+                </span>
               {/if}
               <span
                 class="truncate font-medium"

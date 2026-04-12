@@ -156,6 +156,16 @@
               "Hide Others' Name"
             ? player.className
             : ""}
+        {@const showAbilityScore =
+          player.abilityScore > 0 &&
+          (isLocalPlayer
+            ? SETTINGS.live.general.state.showYourAbilityScore
+            : SETTINGS.live.general.state.showOthersAbilityScore)}
+        {@const showSeasonStrength =
+          player.seasonStrength > 0 &&
+          (isLocalPlayer
+            ? SETTINGS.live.general.state.showYourSeasonStrength
+            : SETTINGS.live.general.state.showOthersSeasonStrength)}
         <tr
           class="relative bg-background/40 hover:bg-muted/60 transition-colors cursor-pointer group"
           style="height: {tableSettings.playerRowHeight}px; font-size: {tableSettings.playerFontSize}px;"
@@ -174,12 +184,12 @@
                     "未知职业",
                 )}
               />
-              {#if (player.abilityScore > 0 && (isLocalPlayer ? SETTINGS.live.general.state.showYourAbilityScore : SETTINGS.live.general.state.showOthersAbilityScore)) || (player.seasonStrength > 0 && (isLocalPlayer ? SETTINGS.live.general.state.showYourSeasonStrength : SETTINGS.live.general.state.showOthersSeasonStrength))}
+              {#if showAbilityScore || showSeasonStrength}
                 <span
                   class="inline-flex items-center gap-0 tabular-nums"
                   style="color: {customThemeColors.tableTextColor};"
                 >
-                  {#if player.abilityScore > 0 && (isLocalPlayer ? SETTINGS.live.general.state.showYourAbilityScore : SETTINGS.live.general.state.showOthersAbilityScore)}
+                  {#if showAbilityScore}
                     {#if SETTINGS.live.general.state.shortenAbilityScore}
                       <AbbreviatedNumber
                         num={player.abilityScore}
@@ -190,9 +200,9 @@
                       <span>{player.abilityScore}</span>
                     {/if}
                   {/if}
-                  {#if player.seasonStrength > 0 && (isLocalPlayer ? SETTINGS.live.general.state.showYourSeasonStrength : SETTINGS.live.general.state.showOthersSeasonStrength)}
+                  {#if showSeasonStrength}
                     <span
-                      class="-ml-0.5 tabular-nums"
+                      class={showAbilityScore ? "ml-0 tabular-nums" : "tabular-nums"}
                       style="color: {customThemeColors.tableTextColor};"
                       >({player.seasonStrength})</span
                     >
