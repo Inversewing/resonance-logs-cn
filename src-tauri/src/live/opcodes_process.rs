@@ -196,20 +196,16 @@ pub fn process_sync_near_entities(
             }),
         };
 
+        let attr_collection = pkt_entity.attrs?;
         match target_entity_type {
             EEntityType::EntChar => {
-                process_player_attrs(
-                    target_entity,
-                    target_uid,
-                    pkt_entity.attrs?.attrs,
-                    attr_store,
-                );
+                process_player_attrs(target_uid, &attr_collection.attrs, attr_store);
             }
             EEntityType::EntMonster => {
                 process_monster_attrs(
                     target_entity,
                     target_uid,
-                    pkt_entity.attrs?.attrs,
+                    &attr_collection.attrs,
                     attr_store,
                 );
             }
@@ -516,6 +512,10 @@ pub(crate) fn process_enter_scene(
         if let Some(player_ent) = info.player_ent.as_ref() {
             if let Some(attrs) = player_ent.attrs.as_ref() {
                 apply_panel_attrs(attr_store, attrs, monitored_panel_attr_ids);
+                if let Some(uuid) = player_ent.uuid {
+                    let player_uid = uuid >> 16;
+                    process_player_attrs(player_uid, &attrs.attrs, attr_store);
+                }
             }
         }
     }
@@ -613,21 +613,16 @@ pub fn process_aoi_sync_delta(
             ..Default::default()
         });
 
-    if let Some(attrs_collection) = aoi_sync_delta.attrs {
+    if let Some(attrs_collection) = aoi_sync_delta.attrs.as_ref() {
         match target_entity_type {
             EEntityType::EntChar => {
-                process_player_attrs(
-                    &mut target_entity,
-                    target_uid,
-                    attrs_collection.attrs,
-                    attr_store,
-                );
+                process_player_attrs(target_uid, &attrs_collection.attrs, attr_store);
             }
             EEntityType::EntMonster => {
                 process_monster_attrs(
                     &mut target_entity,
                     target_uid,
-                    attrs_collection.attrs,
+                    &attrs_collection.attrs,
                     attr_store,
                 );
             }
@@ -1030,9 +1025,8 @@ fn decode_unknown_attr_value(attr_id: i32, raw: &[u8]) -> Option<(AttrType, Attr
 }
 
 fn process_player_attrs(
-    _player_entity: &mut Entity,
     target_uid: i64,
-    attrs: Vec<Attr>,
+    attrs: &[Attr],
     attr_store: &mut EntityAttrStore,
 ) {
     for attr in attrs {
@@ -1084,7 +1078,7 @@ fn process_player_attrs(
 fn process_monster_attrs(
     monster_entity: &mut Entity,
     target_uid: i64,
-    attrs: Vec<Attr>,
+    attrs: &[Attr],
     attr_store: &mut EntityAttrStore,
 ) {
     for attr in attrs {
