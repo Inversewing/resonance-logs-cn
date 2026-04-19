@@ -1141,6 +1141,7 @@ const DEFAULT_SETTINGS = {
       showTotalDps: true,
       showBossHealth: true,
       showNavigationTabs: true,
+      showDeathTab: false,
       timerLabelFontSize: 12,
       timerFontSize: 18,
       activeTimerFontSize: 18,

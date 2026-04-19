@@ -1967,7 +1967,7 @@
                 <!-- Navigation Tabs -->
                 <div class="space-y-2 pt-3 border-t border-border/30">
                   <h3 class="text-sm font-semibold text-foreground">
-                    导航标签 (DPS/治疗/承伤)
+                    导航标签 (DPS/治疗/承伤/死亡)
                   </h3>
                   <SettingsSwitch
                     bind:checked={
@@ -1977,6 +1977,13 @@
                     description="显示 DPS/治疗/承伤 切换按钮"
                   />
                   {#if SETTINGS.live.headerCustomization.state.showNavigationTabs}
+                    <SettingsSwitch
+                      bind:checked={
+                        SETTINGS.live.headerCustomization.state.showDeathTab
+                      }
+                      label="显示死亡标签 (DEATH)"
+                      description="在导航栏中显示 DEATH 标签;关闭后不影响死亡数据本身"
+                    />
                     <SettingsSlider
                       bind:value={
                         SETTINGS.live.headerCustomization.state.navTabFontSize
