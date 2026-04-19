@@ -385,6 +385,10 @@ pub struct Skill {
     pub lucky_total_value: u128,
     pub lucky_hits: u128,
     pub hits: u128,
+    #[serde(default)]
+    pub property: Option<i32>,
+    #[serde(default)]
+    pub damage_mode: Option<i32>,
 }
 
 impl Encounter {

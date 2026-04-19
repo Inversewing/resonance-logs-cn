@@ -900,6 +900,12 @@ pub fn process_aoi_sync_delta(
                     .skill_uid_to_taken_skill
                     .entry(skill_key)
                     .or_insert_with(|| Skill::default());
+                if taken_skill.property.is_none() {
+                    taken_skill.property = sync_damage_info.property;
+                }
+                if taken_skill.damage_mode.is_none() {
+                    taken_skill.damage_mode = sync_damage_info.damage_mode;
+                }
                 if is_crit {
                     defender_entity.taken.crit_hits += 1;
                     defender_entity.taken.crit_total += effective_value;

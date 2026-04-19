@@ -1239,6 +1239,12 @@
                       decimalPlaces={abbreviatedDecimalPlaces}
                       {abbreviationStyle}
                     />
+                  {:else if col.key === "property" || col.key === "damageMode"}
+                    {#if item.kind === "group"}
+                      <span class="text-muted-foreground/50">-</span>
+                    {:else}
+                      {col.format((item.row as SkillDisplayRow)[col.key] as number)}
+                    {/if}
                   {:else}
                     {col.format(skillCellValue(item, col.key))}
                   {/if}

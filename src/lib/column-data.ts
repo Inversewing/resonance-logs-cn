@@ -4,6 +4,8 @@
  * reflect its purpose as generic column metadata.
  */
 
+import { propertyLabel, damageModeLabel } from "./damage-type";
+
 export const historyDpsPlayerColumns = [
   { key: 'totalDmg', header: '伤害', label: '伤害', description: "显示玩家造成的总伤害", format: (v: number) => v.toLocaleString() },
   { key: 'dps', header: '秒伤', label: '秒伤', description: "显示玩家每秒造成的伤害 (DPS)", format: (v: number) => v.toFixed(1) },
@@ -83,6 +85,8 @@ export const liveTankedSkillColumns = [
   { key: 'luckyDmgRate', header: '幸运承伤%', label: '幸运承伤%', description: "显示该技能承受的幸运一击伤害比例", format: (v: number) => v.toFixed(1) + '%' },
   { key: 'hits', header: '受击数', label: '受击数', description: "显示该技能造成的总受击次数", format: (v: number) => v.toLocaleString() },
   { key: 'hitsPerMinute', header: '分均受击', label: '分均受击', description: "显示该技能每分钟造成的受击次数", format: (v: number) => v.toFixed(1) },
+  { key: 'property', header: '元素', label: '元素', description: "技能伤害的元素属性", format: (v: number) => propertyLabel(v) },
+  { key: 'damageMode', header: '物/魔', label: '物/魔', description: "物理或魔法伤害类型", format: (v: number) => damageModeLabel(v) },
 ] as const;
 
 export const historyTankedPlayerColumns = [
@@ -107,6 +111,8 @@ export const historyTankedSkillColumns = [
   { key: 'luckyDmgRate', header: '幸运承伤%', label: '幸运承伤%', description: "显示该技能承受的幸运一击伤害比例", format: (v: number) => v.toFixed(1) + '%' },
   { key: 'hits', header: '受击数', label: '受击数', description: "显示该技能造成的总受击次数", format: (v: number) => v.toLocaleString() },
   { key: 'hitsPerMinute', header: '分均受击', label: '分均受击', description: "显示该技能每分钟造成的受击次数", format: (v: number) => v.toFixed(1) },
+  { key: 'property', header: '元素', label: '元素', description: "技能伤害的元素属性", format: (v: number) => propertyLabel(v) },
+  { key: 'damageMode', header: '物/魔', label: '物/魔', description: "物理或魔法伤害类型", format: (v: number) => damageModeLabel(v) },
 ] as const;
 
 export const historyHealSkillColumns = [

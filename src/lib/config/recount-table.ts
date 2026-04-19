@@ -9,6 +9,8 @@ export type RawSkillStatsLike = {
   critTotalValue: number;
   luckyHits: number;
   luckyTotalValue: number;
+  property?: number | null;
+  damageMode?: number | null;
 };
 
 export type SkillDisplayRow = {
@@ -26,6 +28,8 @@ export type SkillDisplayRow = {
   luckyDmgRate: number;
   hits: number;
   hitsPerMinute: number;
+  property: number | null;
+  damageMode: number | null;
   raw: RawSkillStatsLike;
 };
 
@@ -113,6 +117,8 @@ export function buildSkillDisplayRow(
     luckyDmgRate: pct(Number(stats.luckyTotalValue || 0), totalDmg),
     hits,
     hitsPerMinute: perMinute(hits, elapsedSecs),
+    property: stats.property ?? null,
+    damageMode: stats.damageMode ?? null,
     raw: stats,
   };
 }

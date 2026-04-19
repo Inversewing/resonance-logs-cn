@@ -183,6 +183,8 @@
         luckyDmgRate: group.luckyDmgRate,
         hits: group.hits,
         hitsPerMinute: group.hitsPerMinute,
+        property: null,
+        damageMode: null,
         raw: buildGroupRaw(group),
         isGroup: true,
         depth: 0,
@@ -463,6 +465,12 @@
                   suffixFontSize={tableSettings.skillAbbreviatedFontSize}
                   suffixColor={customThemeColors.tableAbbreviatedColor}
                 />
+              {:else if col.key === "property" || col.key === "damageMode"}
+                {#if skill.isGroup}
+                  <span class="text-muted-foreground/50">-</span>
+                {:else}
+                  {col.format(skill[col.key] as number)}
+                {/if}
               {:else}
                 {col.format(columnValue(skill, col.key))}
               {/if}

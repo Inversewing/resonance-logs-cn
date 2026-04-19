@@ -133,6 +133,8 @@ pub struct RawSkillStats {
     pub crit_total_value: u128,
     pub lucky_hits: u128,
     pub lucky_total_value: u128,
+    pub property: Option<i32>,
+    pub damage_mode: Option<i32>,
 }
 
 #[derive(specta::Type, serde::Serialize, serde::Deserialize, Debug, Default, Clone)]
@@ -166,6 +168,8 @@ pub fn to_raw_skill_stats(skill: &Skill) -> RawSkillStats {
         crit_total_value: skill.crit_total_value,
         lucky_hits: skill.lucky_hits,
         lucky_total_value: skill.lucky_total_value,
+        property: skill.property,
+        damage_mode: skill.damage_mode,
     }
 }
 
@@ -201,6 +205,8 @@ pub fn build_per_target_stats(
                 crit_total_value: stats.crit_total,
                 lucky_hits: stats.lucky_hits,
                 lucky_total_value: stats.lucky_total,
+                property: None,
+                damage_mode: None,
             },
         );
         entry.total_value += stats.total_value;

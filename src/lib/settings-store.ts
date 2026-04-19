@@ -20,6 +20,8 @@ export const DEFAULT_STATS = {
   luckyDmgRate: false,
   hits: false,
   hitsPerMinute: false,
+  property: true,
+  damageMode: true,
 };
 
 export const DEFAULT_HISTORY_STATS = {
@@ -37,6 +39,8 @@ export const DEFAULT_HISTORY_STATS = {
   luckyDmgRate: false,
   hits: false,
   hitsPerMinute: false,
+  property: true,
+  damageMode: true,
 };
 
 export const DEFAULT_HISTORY_TANKED_STATS = {
@@ -146,6 +150,8 @@ export const DEFAULT_TANKED_SKILL_COLUMN_ORDER = [
   "luckyDmgRate",
   "hits",
   "hitsPerMinute",
+  "property",
+  "damageMode",
 ];
 
 // Default sort settings for live tables
