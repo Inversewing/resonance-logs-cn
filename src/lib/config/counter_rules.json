@@ -118,6 +118,7 @@
         "slotId": 1,
         "threshold": 10,
         "resetBuffId": 2201611,
+        "resetSourceConfigId": 2201610,
         "onBuffAdd": "reset",
         "onBuffChange": "noOp",
         "onBuffRemove": "noOp"
