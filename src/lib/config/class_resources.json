@@ -37,6 +37,25 @@
       "imageOff": "/images/frost_mage/res/main_snow_off_3542757998136383818.png"
     }
   ],
+  "flame_berserker": [
+    {
+      "type": "bar",
+      "label": "炎魂",
+      "currentId": 13011,
+      "maxId": 13017,
+      "imageOn": "/images/flame_berserker/res/main_axe_bar_on_6151548781199815166.png",
+      "imageOff": "/images/flame_berserker/res/main_axe_bar_off_-8593627078287687699.png",
+      "buffBaseId": 35103
+    },
+    {
+      "type": "charges",
+      "label": "狂意",
+      "currentId": 13001,
+      "maxId": 13007,
+      "imageOn": "/images/flame_berserker/res/main_axe_on_9059906859962064051.png",
+      "imageOff": "/images/flame_berserker/res/main_axe_off_-292607344260861433.png"
+    }
+  ],
   "stormblade": [
     {
       "type": "bar",

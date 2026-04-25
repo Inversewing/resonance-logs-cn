@@ -124,6 +124,10 @@
     transform-origin: center;
   }
 
+  .resources-panel[data-class="flame_berserker"] .res-energy-overlay {
+    padding: 17px 62px 0 22px;
+  }
+
   .res-bar-container {
     position: relative;
     margin-top: 14px;

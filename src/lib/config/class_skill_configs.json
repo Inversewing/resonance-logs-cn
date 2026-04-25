@@ -184,6 +184,50 @@
       }
     ]
   },
+  "flame_berserker": {
+    "classKey": "flame_berserker",
+    "className": "赤炎狂战士",
+    "classId": 3,
+    "defaultMonitoredBuffIds": [510072, 2208483],
+    "derivations": [
+      {
+        "sourceSkillId": 1614,
+        "derivedSkillId": 1621,
+        "triggerBuffBaseId": 2208483,
+        "derivedName": "炎魔天落杀",
+        "derivedImagePath": "/images/flame_berserker/skill/weapon_sf-01_kx05.png",
+        "keepCdWhenDerived": true
+      }
+    ],
+    "skills": [
+      {
+        "skillId": 1606,
+        "name": "狂热斩击",
+        "imagePath": "/images/flame_berserker/skill/weapon_sf-01_tg02.png"
+      },
+      {
+        "skillId": 1613,
+        "name": "迷狂炎舞",
+        "imagePath": "/images/flame_berserker/skill/weapon_sf-01_kx04.png"
+      },
+      {
+        "skillId": 1617,
+        "name": "无尽之炎魔",
+        "imagePath": "/images/flame_berserker/skill/weapon_sf-01_kx08.png"
+      },
+      {
+        "skillId": 1614,
+        "name": "无羁坠星",
+        "imagePath": "/images/flame_berserker/skill/weapon_sf-01_kx05.png"
+      },
+      {
+        "skillId": 1616,
+        "name": "如川流华斩",
+        "maxCharges": 2,
+        "imagePath": "/images/flame_berserker/skill/weapon_sf-01_kx07.png"
+      }
+    ]
+  },
   "stormblade": {
     "classKey": "stormblade",
     "className": "雷影剑士",
