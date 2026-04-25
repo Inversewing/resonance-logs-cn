@@ -74,6 +74,20 @@
     }
   },
   {
+    "slotTemplateId": "beat_performer_x3",
+    "name": "灵魂真实因子X3, 触发烈焰狂想, 冷却时间 2s",
+    "description": "触发烈焰狂想, 冷却时间 2s",
+    "slot": {
+      "threshold": 132,
+      "resetBuffId": 3057421,
+      "onBuffAdd": "freeze",
+      "onBuffChange": "noOp",
+      "onBuffRemove": "noOp",
+      "freezeDurationMs": 2000,
+      "onFreezeExpire": "resetAndStartCount"
+    }
+  },
+  {
     "slotTemplateId": "beat_performer_x5",
     "name": "灵魂真实因子X5, 召唤音响, 冷却 15s",
     "description": "召唤音响",
@@ -84,6 +98,34 @@
       "onBuffChange": "noOp",
       "onBuffRemove": "noOp",
       "freezeDurationMs": 15000,
+      "onFreezeExpire": "resetAndStartCount"
+    }
+  },
+  {
+    "slotTemplateId": "marksman_x1",
+    "name": "神射真实因子X1, 召唤一只狼并增伤, 冷却 30s",
+    "description": "召唤一只狼并增伤, 冷却 30s",
+    "slot": {
+      "threshold": 1200,
+      "resetBuffId": 3053401,
+      "onBuffAdd": "freeze",
+      "onBuffChange": "noOp",
+      "onBuffRemove": "noOp",
+      "freezeDurationMs": 30000,
+      "onFreezeExpire": "resetAndStartCount"
+    }
+  },
+  {
+    "slotTemplateId": "marksman_x2",
+    "name": "神射真实因子X2, 下次释放箭雨回复所有光能, 冷却 12s",
+    "description": "下次释放箭雨回复所有光能, 冷却 12s",
+    "slot": {
+      "threshold": 492,
+      "resetBuffId": 3053411,
+      "onBuffAdd": "freeze",
+      "onBuffChange": "noOp",
+      "onBuffRemove": "noOp",
+      "freezeDurationMs": 12000,
       "onFreezeExpire": "resetAndStartCount"
     }
   },
@@ -123,6 +165,20 @@
       "onBuffAdd": "reset",
       "onBuffChange": "noOp",
       "onBuffRemove": "noOp"
+    }
+  },
+  {
+    "slotTemplateId": "frost_mage_x2",
+    "name": "冰魔真实因子X2, 对造成伤害目标位置召唤寒冰风暴, 冷却 8s",
+    "description": "对造成伤害目标位置召唤寒冰风暴, 冷却 8s",
+    "slot": {
+      "threshold": 240,
+      "resetBuffId": 3052412,
+      "onBuffAdd": "freeze",
+      "onBuffChange": "noOp",
+      "onBuffRemove": "noOp",
+      "freezeDurationMs": 8000,
+      "onFreezeExpire": "resetAndStartCount"
     }
   },
   {

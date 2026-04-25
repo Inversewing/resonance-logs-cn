@@ -167,6 +167,39 @@
     }
   },
   {
+    "sourceId": "marksman_x1",
+    "name": "神射X1, 释放暴风箭矢获得 5 点能量",
+    "description": "释放暴风箭矢获得 5 点能量",
+    "source": {
+      "skillCast": {
+        "skillBaseIds": [2220],
+        "increment": 5
+      }
+    }
+  },
+  {
+    "sourceId": "marksman_x3",
+    "name": "神射X3, 野狼造成伤害获得 4 点能量",
+    "description": "野狼造成伤害获得 4 点能量",
+    "source": {
+      "damageBySkillKeyOnce": {
+        "skillKeys": [117008270101, 117008250102, 117008260102, 117008240102, 117008200102],
+        "increment": 4
+      }
+    }
+  },
+  {
+    "sourceId": "marksman_x4",
+    "name": "神射X4, 光追箭矢造成伤害获得 4 点能量",
+    "description": "光追箭矢造成伤害获得 4 点能量",
+    "source": {
+      "damageBySkillKey": {
+        "skillKeys": [322010500],
+        "increment": 4
+      }
+    }
+  },
+  {
     "sourceId": "marksman_x7",
     "name": "神射X7, 闪电冲击造成伤害获得 51 点能量",
     "description": "闪电冲击造成伤害获得 51 点能量",
