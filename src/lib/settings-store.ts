@@ -4,6 +4,11 @@
  */
 import { RuneStore } from "@tauri-store/svelte";
 import type { BuffCategoryKey } from "./config/buff-name-table";
+import {
+  cloneHeaderCustomLayout,
+  type HeaderCustomLayout,
+  type HeaderLayoutMode,
+} from "./live-header-layout";
 
 export const DEFAULT_STATS = {
   totalDmg: true,
@@ -1158,6 +1163,8 @@ const DEFAULT_SETTINGS = {
     headerCustomization: {
       windowPadding: 12,
       headerPadding: 8,
+      headerLayoutMode: "classic" as HeaderLayoutMode,
+      headerCustomLayout: cloneHeaderCustomLayout() as HeaderCustomLayout,
       showTimer: true,
       showActiveTimer: false,
       showSceneName: true,
@@ -1190,6 +1197,7 @@ const DEFAULT_SETTINGS = {
       totalDamageValueFontSize: 18,
       totalDpsLabelFontSize: 14,
       totalDpsValueFontSize: 18,
+      bossHealthLayout: "vertical" as "vertical" | "horizontal",
       bossHealthLabelFontSize: 14,
       bossHealthNameFontSize: 14,
       bossHealthValueFontSize: 14,

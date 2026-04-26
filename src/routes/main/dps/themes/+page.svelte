@@ -6,6 +6,7 @@
   import SettingsColor from "../settings/settings-color.svelte";
   import SettingsColorAlpha from "../settings/settings-color-alpha.svelte";
   import SettingsFilePicker from "../settings/settings-file-picker.svelte";
+  import HeaderLayoutEditor from "../settings/header-layout-editor.svelte";
   import {
     SETTINGS,
     DEFAULT_CLASS_COLORS,
@@ -699,9 +700,7 @@
             class="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
             onclick={() => toggleSection("colorThemes")}
           >
-            <h2 class="text-base font-semibold text-foreground">
-              主题颜色
-            </h2>
+            <h2 class="text-base font-semibold text-foreground">主题颜色</h2>
             <ChevronDown
               class="w-5 h-5 text-muted-foreground transition-transform duration-200 {expandedSections.colorThemes
                 ? 'rotate-180'
@@ -1223,9 +1222,7 @@
               </div>
 
               <div class="space-y-2 pt-3 border-t border-border/30">
-                <h3 class="text-sm font-semibold text-foreground">
-                  技能表头
-                </h3>
+                <h3 class="text-sm font-semibold text-foreground">技能表头</h3>
                 <SettingsSwitch
                   bind:checked={
                     SETTINGS.live.tableCustomization.state.skillShowHeader
@@ -1295,9 +1292,7 @@
             class="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
             onclick={() => toggleSection("backgroundImage")}
           >
-            <h2 class="text-base font-semibold text-foreground">
-              背景图片
-            </h2>
+            <h2 class="text-base font-semibold text-foreground">背景图片</h2>
             <ChevronDown
               class="w-5 h-5 text-muted-foreground transition-transform duration-200 {expandedSections.backgroundImage
                 ? 'rotate-180'
@@ -1363,9 +1358,7 @@
             class="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
             onclick={() => toggleSection("customFonts")}
           >
-            <h2 class="text-base font-semibold text-foreground">
-              自定义字体
-            </h2>
+            <h2 class="text-base font-semibold text-foreground">自定义字体</h2>
             <ChevronDown
               class="w-5 h-5 text-muted-foreground transition-transform duration-200 {expandedSections.customFonts
                 ? 'rotate-180'
@@ -1375,7 +1368,8 @@
           {#if expandedSections.customFonts}
             <div class="px-4 pb-4 space-y-4">
               <p class="text-xs text-muted-foreground">
-                导入自定义字体以替换默认字体。字体文件格式应为 .woff2, .woff, .ttf, 或 .otf。
+                导入自定义字体以替换默认字体。字体文件格式应为 .woff2, .woff,
+                .ttf, 或 .otf。
               </p>
 
               <!-- Sans-serif Font -->
@@ -1535,9 +1529,7 @@
             class="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors"
             onclick={() => toggleSection("headerSettings")}
           >
-            <h2 class="text-base font-semibold text-foreground">
-              标题栏设置
-            </h2>
+            <h2 class="text-base font-semibold text-foreground">标题栏设置</h2>
             <ChevronDown
               class="w-5 h-5 text-muted-foreground transition-transform duration-200 {expandedSections.headerSettings
                 ? 'rotate-180'
@@ -1577,6 +1569,32 @@
                     description="标题栏区域内部留白"
                     unit="px"
                   />
+                </div>
+
+                <!-- Header Layout -->
+                <div class="space-y-3 pt-3 border-t border-border/30">
+                  <h3 class="text-sm font-semibold text-foreground">
+                    标题栏布局
+                  </h3>
+                  <SettingsSelect
+                    bind:selected={
+                      SETTINGS.live.headerCustomization.state.headerLayoutMode
+                    }
+                    label="布局模式"
+                    description="经典布局保持当前两行结构；自由布局允许把标题栏组件拆到多行。"
+                    values={[
+                      { label: "经典布局", value: "classic" },
+                      { label: "自由布局", value: "custom" },
+                    ]}
+                  />
+                  {#if SETTINGS.live.headerCustomization.state.headerLayoutMode === "custom"}
+                    <HeaderLayoutEditor
+                      bind:layout={
+                        SETTINGS.live.headerCustomization.state
+                          .headerCustomLayout
+                      }
+                    />
+                  {/if}
                 </div>
 
                 <!-- Timer Settings -->
@@ -1822,9 +1840,7 @@
 
                 <!-- Total Damage -->
                 <div class="space-y-2 pt-3 border-t border-border/30">
-                  <h3 class="text-sm font-semibold text-foreground">
-                    总伤害
-                  </h3>
+                  <h3 class="text-sm font-semibold text-foreground">总伤害</h3>
                   <SettingsSwitch
                     bind:checked={
                       SETTINGS.live.headerCustomization.state.showTotalDamage
@@ -1862,9 +1878,7 @@
 
                 <!-- Total DPS -->
                 <div class="space-y-2 pt-3 border-t border-border/30">
-                  <h3 class="text-sm font-semibold text-foreground">
-                    总秒伤
-                  </h3>
+                  <h3 class="text-sm font-semibold text-foreground">总秒伤</h3>
                   <SettingsSwitch
                     bind:checked={
                       SETTINGS.live.headerCustomization.state.showTotalDps
@@ -1913,6 +1927,17 @@
                     description="显示当前 Boss 血条"
                   />
                   {#if SETTINGS.live.headerCustomization.state.showBossHealth}
+                    <SettingsSelect
+                      bind:selected={
+                        SETTINGS.live.headerCustomization.state.bossHealthLayout
+                      }
+                      label="排列方向"
+                      description="横向显示时不会自动换行，适合 Boss 血量独占一行"
+                      values={[
+                        { label: "竖向显示", value: "vertical" },
+                        { label: "横向显示", value: "horizontal" },
+                      ]}
+                    />
                     <SettingsSlider
                       bind:value={
                         SETTINGS.live.headerCustomization.state
@@ -2031,9 +2056,7 @@
         <!-- Color Theme Presets -->
         <div class="space-y-3">
           <div>
-            <h2 class="text-base font-semibold text-foreground">
-              颜色主题
-            </h2>
+            <h2 class="text-base font-semibold text-foreground">颜色主题</h2>
             <p class="text-xs text-muted-foreground mt-0.5">
               选择一个预设颜色主题
             </p>
@@ -2078,9 +2101,7 @@
         <!-- Size Presets -->
         <div class="space-y-3 pt-4 border-t border-border/50">
           <div>
-            <h2 class="text-base font-semibold text-foreground">
-              尺寸预设
-            </h2>
+            <h2 class="text-base font-semibold text-foreground">尺寸预设</h2>
             <p class="text-xs text-muted-foreground mt-0.5">
               根据显示器调整表格和标题的大小
             </p>
