@@ -201,7 +201,12 @@ pub fn run() {
         .on_window_event(on_window_event_fn)
         .plugin(tauri_plugin_clipboard_manager::init()) // used to read/write to the clipboard
         .plugin(tauri_plugin_window_state::Builder::default().build()) // used to remember window size/position https://v2.tauri.app/plugin/window-state/
-        .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {})) // used to enforce only 1 instance of the app https://v2.tauri.app/plugin/single-instance/
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+            let Some(main_window) = app.get_webview_window(WINDOW_MAIN_LABEL) else {
+                return;
+            };
+            show_window_and_focus(&main_window);
+        })) // used to enforce only 1 instance of the app https://v2.tauri.app/plugin/single-instance/
         .plugin(tauri_plugin_opener::init()) // used to open URLs in the default browser
         .plugin(tauri_plugin_dialog::init()) // used to show save/open dialogs
         .plugin(tauri_plugin_svelte::init()); // used for settings file
@@ -625,6 +630,33 @@ fn create_diagnostics_bundle(
     Ok(bundle_path.display().to_string())
 }
 
+fn show_window_and_focus(window: &tauri::WebviewWindow) {
+    if let Err(e) = window.show() {
+        warn!("failed to show window {}: {}", window.label(), e);
+    }
+    if let Err(e) = window.unminimize() {
+        warn!("failed to unminimize window {}: {}", window.label(), e);
+    }
+    if let Err(e) = window.set_focus() {
+        warn!("failed to focus window {}: {}", window.label(), e);
+    }
+}
+
+fn show_window_and_disable_clickthrough(window: &tauri::WebviewWindow) {
+    show_window_and_focus(window);
+
+    // Always disable clickthrough when showing live window from tray.
+    if window.label() == WINDOW_LIVE_LABEL {
+        if let Err(e) = window.set_ignore_cursor_events(false) {
+            warn!(
+                "failed to set ignore_cursor_events for {}: {}",
+                window.label(),
+                e
+            );
+        }
+    }
+}
+
 /// Sets up the system tray icon and menu.
 ///
 /// This function creates the tray icon, defines its menu, and sets up event handlers.
@@ -637,28 +669,6 @@ fn create_diagnostics_bundle(
 ///
 /// * `tauri::Result<()>` - An empty result indicating success or failure.
 fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
-    fn show_window_and_disable_clickthrough(window: &tauri::WebviewWindow) {
-        if let Err(e) = window.show() {
-            warn!("failed to show window {}: {}", window.label(), e);
-        }
-        if let Err(e) = window.unminimize() {
-            warn!("failed to unminimize window {}: {}", window.label(), e);
-        }
-        if let Err(e) = window.set_focus() {
-            warn!("failed to focus window {}: {}", window.label(), e);
-        }
-        // Always disable clickthrough when showing window from tray
-        if window.label() == WINDOW_LIVE_LABEL {
-            if let Err(e) = window.set_ignore_cursor_events(false) {
-                warn!(
-                    "failed to set ignore_cursor_events for {}: {}",
-                    window.label(),
-                    e
-                );
-            }
-        }
-    }
-
     let menu = MenuBuilder::new(app)
         .text("show-settings", "Show Settings")
         .separator()
@@ -705,18 +715,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                 {
                     warn!("failed to set position for live window: {}", e);
                 }
-                if let Err(e) = live_meter_window.show() {
-                    warn!("failed to show live window: {}", e);
-                }
-                if let Err(e) = live_meter_window.unminimize() {
-                    warn!("failed to unminimize live window: {}", e);
-                }
-                if let Err(e) = live_meter_window.set_focus() {
-                    warn!("failed to focus live window: {}", e);
-                }
-                if let Err(e) = live_meter_window.set_ignore_cursor_events(false) {
-                    warn!("failed to set ignore_cursor_events for live window: {}", e);
-                }
+                show_window_and_disable_clickthrough(&live_meter_window);
             }
             "clickthrough" => {
                 let Some(live_meter_window) = tray_app.get_webview_window(WINDOW_LIVE_LABEL) else {
@@ -763,16 +762,9 @@ fn on_window_event_fn(window: &Window, event: &WindowEvent) {
     match event {
         // when you click the X button to close a window
         WindowEvent::CloseRequested { api, .. } => {
-            if window.label() == WINDOW_MAIN_LABEL {
-                // Main window close = exit entire app
-                stop_windivert();
-                window.app_handle().exit(0);
-            } else {
-                // Other windows (like live) just hide
-                api.prevent_close();
-                if let Err(e) = window.hide() {
-                    warn!("failed to hide window {}: {}", window.label(), e);
-                }
+            api.prevent_close();
+            if let Err(e) = window.hide() {
+                warn!("failed to hide window {}: {}", window.label(), e);
             }
         }
         WindowEvent::Focused(focused) if !focused => {
