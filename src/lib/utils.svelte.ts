@@ -101,14 +101,16 @@ export function getClickthroughState(): boolean {
   return isClickthrough;
 }
 
-export async function setClickthrough(bool: boolean) {
+export async function applyLiveClickthrough(enabled: boolean) {
   const liveWindow = await WebviewWindow.getByLabel("live");
-  await liveWindow?.setIgnoreCursorEvents(bool);
-  isClickthrough = bool;
+  await liveWindow?.setIgnoreCursorEvents(enabled);
+  isClickthrough = enabled;
 }
 
-export async function toggleClickthrough() {
-  const liveWindow = await WebviewWindow.getByLabel("live");
-  await liveWindow?.setIgnoreCursorEvents(!isClickthrough);
-  isClickthrough = !isClickthrough;
+export function setClickthroughPreference(enabled: boolean) {
+  SETTINGS.accessibility.state.clickthrough = enabled;
+}
+
+export function toggleClickthroughPreference() {
+  setClickthroughPreference(!SETTINGS.accessibility.state.clickthrough);
 }

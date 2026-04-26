@@ -16,7 +16,6 @@
     CUSTOM_THEME_COLOR_LABELS,
   } from "$lib/settings-store";
   import {
-    setClickthrough,
     CLASS_NAMES,
     getClassColorRaw,
   } from "$lib/utils.svelte";
@@ -631,10 +630,6 @@
     Tables: "表格",
     Utility: "工具",
   };
-
-  $effect(() => {
-    setClickthrough(SETTINGS.accessibility.state.clickthrough);
-  });
 
   function updateClassColor(className: string, color: string) {
     SETTINGS.accessibility.state.classColors = {

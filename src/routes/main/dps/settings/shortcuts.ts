@@ -1,6 +1,9 @@
 import { commands } from "$lib/bindings";
 import { SETTINGS } from "$lib/settings-store";
-import { setClickthrough, toggleClickthrough } from "$lib/utils.svelte";
+import {
+  setClickthroughPreference,
+  toggleClickthroughPreference,
+} from "$lib/utils.svelte";
 import { emit } from "@tauri-apps/api/event";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { register, unregisterAll } from "@tauri-apps/plugin-global-shortcut";
@@ -73,7 +76,7 @@ export async function registerShortcut(cmdId: string, shortcutKey: string) {
         await register(shortcutKey, async (event) => {
           if (event.state === "Pressed") {
             console.log(`Triggered ${cmdId}`);
-            setClickthrough(true);
+            setClickthroughPreference(true);
           }
         });
         break;
@@ -82,7 +85,7 @@ export async function registerShortcut(cmdId: string, shortcutKey: string) {
         await register(shortcutKey, async (event) => {
           if (event.state === "Pressed") {
             console.log(`Triggered ${cmdId}`);
-            setClickthrough(false);
+            setClickthroughPreference(false);
           }
         });
         break;
@@ -91,7 +94,7 @@ export async function registerShortcut(cmdId: string, shortcutKey: string) {
         await register(shortcutKey, async (event) => {
           if (event.state === "Pressed") {
             console.log(`Triggered ${cmdId}`);
-            toggleClickthrough();
+            toggleClickthroughPreference();
           }
         });
         break;

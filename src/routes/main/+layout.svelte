@@ -9,6 +9,7 @@
   import { goto } from "$app/navigation";
   import { SETTINGS } from '$lib/settings-store';
   import { applyCustomFonts } from "$lib/font-loader";
+  import { applyLiveClickthrough } from "$lib/utils.svelte";
   import {
     buildMonitorRuntimeSnapshot,
     createMonitorRuntimeSnapshotSignature,
@@ -111,6 +112,17 @@
     });
   });
 
+  $effect(() => {
+    const enabled = SETTINGS.accessibility.state.clickthrough;
+    void (async () => {
+      try {
+        await applyLiveClickthrough(enabled);
+      } catch (error) {
+        console.error("[clickthrough] failed to sync live window state", error);
+      }
+    })();
+  });
+
   // Navigation listener is set up in onMount and properly cleaned up
   let navigateUnlisten: (() => void) | null = null;
 
@@ -123,6 +135,7 @@
   };
   let updateInfo = $state<UpdateInfo | null>(null);
   let updateUnlisten: UnlistenFn | null = null;
+  let clickthroughUnlisten: UnlistenFn | null = null;
 
   onMount(() => {
     // Set up navigation listener
@@ -140,6 +153,14 @@
       updateUnlisten = unlisten;
     }).catch((err) => {
       console.error("Failed to subscribe update-available event", err);
+    });
+
+    listen<boolean>("live-clickthrough-changed", (event) => {
+      SETTINGS.accessibility.state.clickthrough = event.payload;
+    }).then((unlisten) => {
+      clickthroughUnlisten = unlisten;
+    }).catch((err) => {
+      console.error("Failed to subscribe live-clickthrough-changed event", err);
     });
 
     // Get app version and check changelog
@@ -196,6 +217,10 @@
       if (updateUnlisten) {
         updateUnlisten();
         updateUnlisten = null;
+      }
+      if (clickthroughUnlisten) {
+        clickthroughUnlisten();
+        clickthroughUnlisten = null;
       }
       clearInterval(bgAndFontInterval);
     };

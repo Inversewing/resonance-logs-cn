@@ -10,6 +10,7 @@
    */
   import { onMount } from "svelte";
   import { SETTINGS } from "$lib/settings-store";
+  import { listen, type UnlistenFn } from "@tauri-apps/api/event";
   import {
     onLiveData,
     onResetEncounter,
@@ -20,6 +21,7 @@
     onDeathReplay,
   } from "$lib/api";
   import { applyCustomFonts } from "$lib/font-loader";
+  import { applyLiveClickthrough } from "$lib/utils.svelte";
   import { writable } from "svelte/store";
   import { beforeNavigate, afterNavigate } from "$app/navigation";
 
@@ -46,6 +48,7 @@
   let notificationToast: NotificationToast;
   let mainElement: HTMLElement | undefined = undefined;
   let unlisten: (() => void) | null = null;
+  let clickthroughUnlisten: UnlistenFn | null = null;
 
   // Prevent concurrent setupEventListeners runs which can attach duplicate listeners
   let listenersSetupInProgress = false;
@@ -309,11 +312,22 @@
     isDestroyed = false;
     setupEventListeners();
     startReconnectCheck();
+    listen<boolean>("live-clickthrough-changed", (event) => {
+      SETTINGS.accessibility.state.clickthrough = event.payload;
+    }).then((unlisten) => {
+      clickthroughUnlisten = unlisten;
+    }).catch((error) => {
+      console.error("Failed to subscribe live-clickthrough-changed event", error);
+    });
 
     return () => {
       isDestroyed = true;
       if (reconnectInterval) clearInterval(reconnectInterval);
       if (unlisten) unlisten();
+      if (clickthroughUnlisten) {
+        clickthroughUnlisten();
+        clickthroughUnlisten = null;
+      }
       cleanupStores();
     };
   });
@@ -370,6 +384,17 @@
       monoName: SETTINGS.accessibility.state.customFontMonoName,
       monoUrl: SETTINGS.accessibility.state.customFontMonoUrl,
     });
+  });
+
+  $effect(() => {
+    const enabled = SETTINGS.accessibility.state.clickthrough;
+    void (async () => {
+      try {
+        await applyLiveClickthrough(enabled);
+      } catch (error) {
+        console.error("[clickthrough] failed to sync live window state", error);
+      }
+    })();
   });
 
 </script>

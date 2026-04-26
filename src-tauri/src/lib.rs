@@ -31,6 +31,7 @@ pub const WINDOW_MAIN_LABEL: &str = "main";
 pub const WINDOW_GAME_OVERLAY_LABEL: &str = "game-overlay";
 /// The label for the monster overlay window.
 pub const WINDOW_MONSTER_OVERLAY_LABEL: &str = "monster-overlay";
+const LIVE_CLICKTHROUGH_CHANGED_EVENT: &str = "live-clickthrough-changed";
 
 /// Keeps the non-blocking tracing appender worker alive for the lifetime of the process.
 /// If this guard is dropped, file logging may stop flushing.
@@ -642,18 +643,18 @@ fn show_window_and_focus(window: &tauri::WebviewWindow) {
     }
 }
 
-fn show_window_and_disable_clickthrough(window: &tauri::WebviewWindow) {
-    show_window_and_focus(window);
+fn disable_live_clickthrough(app: &tauri::AppHandle, window: &tauri::WebviewWindow) {
+    if let Err(e) = window.set_ignore_cursor_events(false) {
+        warn!(
+            "failed to set ignore_cursor_events for {}: {}",
+            window.label(),
+            e
+        );
+        return;
+    }
 
-    // Always disable clickthrough when showing live window from tray.
-    if window.label() == WINDOW_LIVE_LABEL {
-        if let Err(e) = window.set_ignore_cursor_events(false) {
-            warn!(
-                "failed to set ignore_cursor_events for {}: {}",
-                window.label(),
-                e
-            );
-        }
+    if let Err(e) = app.emit(LIVE_CLICKTHROUGH_CHANGED_EVENT, false) {
+        warn!("failed to emit {}: {}", LIVE_CLICKTHROUGH_CHANGED_EVENT, e);
     }
 }
 
@@ -690,7 +691,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                 else {
                     return;
                 };
-                show_window_and_disable_clickthrough(&main_meter_window);
+                show_window_and_focus(&main_meter_window);
             }
             "show-live" => {
                 let tray_app_handle = tray_app.app_handle();
@@ -698,7 +699,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                 else {
                     return;
                 };
-                show_window_and_disable_clickthrough(&live_meter_window);
+                show_window_and_focus(&live_meter_window);
             }
             "reset" => {
                 let Some(live_meter_window) = tray_app.get_webview_window(WINDOW_LIVE_LABEL) else {
@@ -715,15 +716,13 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                 {
                     warn!("failed to set position for live window: {}", e);
                 }
-                show_window_and_disable_clickthrough(&live_meter_window);
+                show_window_and_focus(&live_meter_window);
             }
             "clickthrough" => {
                 let Some(live_meter_window) = tray_app.get_webview_window(WINDOW_LIVE_LABEL) else {
                     return;
                 };
-                if let Err(e) = live_meter_window.set_ignore_cursor_events(false) {
-                    warn!("failed to set ignore_cursor_events for live window: {}", e);
-                }
+                disable_live_clickthrough(tray_app, &live_meter_window);
             }
             "quit" => {
                 stop_windivert();
@@ -743,7 +742,7 @@ fn setup_tray(app: &tauri::AppHandle) -> tauri::Result<()> {
                 let Some(main_window) = app.get_webview_window(WINDOW_MAIN_LABEL) else {
                     return;
                 };
-                show_window_and_disable_clickthrough(&main_window);
+                show_window_and_focus(&main_window);
             }
         })
         .build(app)?;
