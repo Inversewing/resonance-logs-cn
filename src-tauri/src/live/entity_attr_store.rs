@@ -82,6 +82,11 @@ impl EntityAttrStore {
         {
             self.cd_dirty = true;
         }
+        if uid == self.local_player_uid
+            && matches!(attr_type, AttrType::CurrentHp | AttrType::MaxHp)
+        {
+            self.shield_detail_dirty = true;
+        }
 
         if matches!(attr_type, AttrType::ActorState) {
             let is_dead_now = self.is_dead(uid);
