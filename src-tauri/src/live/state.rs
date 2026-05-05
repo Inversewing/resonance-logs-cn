@@ -1336,7 +1336,37 @@ impl AppStateManager {
         let mut all_hate_lists = HashMap::with_capacity(boss_count);
         let mut new_names =
             HashMap::with_capacity(boss_count.saturating_add(boss_buff_snapshot.len()));
+        // 你的四个符文 Buff ID（替换为实际值）
+const RUNE_BUFF_IDS: [i32; 4] = [883707, 883708, 883709, 883710];
 
+// 收集有符文 Buff 的怪物 UID
+let mut rune_uids: Vec<i64> = Vec::new();
+for (&uid, monitor) in &state.boss_buff_monitors.monitors {
+    let has_rune = monitor.active_buffs.values().any(|b| RUNE_BUFF_IDS.contains(&b.base_id));
+    if has_rune {
+        rune_uids.push(uid);
+    }
+}
+rune_uids.sort_unstable();
+
+// 尝试获取位置，如果暂时没有位置数据，则按 UID 排序编号（临时）
+let rune_aliases: HashMap<i64, String> = rune_uids
+    .iter()
+    .enumerate()
+    .map(|(i, &uid)| {
+        // 这里先不管位置，直接给序号（后期替换为坐标分类）
+        (uid, format!("符文·{}", i + 1))
+    })
+    .collect();
+
+// 覆盖名字
+for (&uid, name) in &rune_aliases {
+    new_names.insert(uid, name.clone());
+}
+// 标记已发送
+for &uid in &rune_uids {
+    state.sent_overlay_uids.insert(uid);
+}
         for (&boss_uid, entity) in &state.encounter.entity_uid_to_entity {
             if !entity.is_boss() {
                 continue;

@@ -1220,7 +1220,7 @@ fn process_monster_attrs(
             }
             continue;
         }
-
+        
         if let Some(attr_type) = AttrType::from_id(attr_id) {
             let value = decode_varint_i64_or_default(raw_bytes_opt);
             let _ = attr_store.set_attr(target_uid, attr_type, AttrValue::Int(value));

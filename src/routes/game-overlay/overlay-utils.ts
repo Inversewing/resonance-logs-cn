@@ -160,9 +160,9 @@ export function buildBuffTextRow(
   const active = isBuffActive(buff, now);
   if (!active && !isPlaceholder) return null;
 
-  if (buff.durationMs <= 0 && buff.layer <= 1 && !isPlaceholder && !forceShow) {
+  /*if (buff.durationMs <= 0 && buff.layer <= 1 && !isPlaceholder && !forceShow) {
     return null;
-  }
+  }*/
 
   const remainingMs = getBuffRemainingMs(buff, now);
   const layer = Math.max(1, buff.layer);
